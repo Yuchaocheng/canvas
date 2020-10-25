@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas绘制文本</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    #canvas {
+        border: 1px solid black;
+        margin: 200px;
+    }
+</style>
+
+<body>
+    <canvas id="canvas" width="600" height="300"></canvas>
+    <canvas id="canvas2" width="600" height="300"></canvas>
+</body>
+<script>
+    // fillText(text, x, y [, maxWidth])
+    //strokeText(text, x, y [, maxWidth])
+    //这两个方法的差异就是一个有填充色一个没有填充色，默认值都是黑色。
+    /** @type {HTMLCanvasElement} */
+    let ctx = document.getElementById("canvas").getContext("2d");
+    //画一个网格
+    (() => {
+        ctx.beginPath();
+        let xInterval = 10;
+        let yInterval = 10;
+        for (let x = 1; x < 600 / xInterval; x++) {
+            ctx.moveTo(x * xInterval, 0);
+            ctx.lineTo(x * xInterval, 300);
+        }
+        for (let y = 1; y < 300 / yInterval; y++) {
+            ctx.moveTo(0, y * yInterval);
+            ctx.lineTo(600, y * yInterval);
+        }
+        ctx.strokeStyle = "#ccc"
+        ctx.stroke();
+    })();
+
+    (() => {
+        ctx.font = "48px serif";
+        /* 文字水平方向控制 */
+        // ctx.textAlign="end" //最后一个字再50,50像素处
+        // ctx.textAlign = "center" //文本中间再50,50点出
+        /* 文字垂直方向控制 */
+        // ctx.textBaseline='top | hanging | middle | alphabetic | ideographic | bottom';
+        // ctx.textBaseline='alphabetic';
+
+        /* 一个中文字符占48像素，二个英文字符占48像素 */
+        ctx.fillText("怎么说，小baby", 50, 50);
+        ctx.strokeText("Hello world", 100, 100);
+        //利用text.width测量文本宽度。
+        var text = ctx.measureText("Hello world"); // TextMetrics object
+        console.log(text, "怎么说，小baby");
+    })();
+</script>
+
+</html>

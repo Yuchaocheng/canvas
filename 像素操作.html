@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>像素操作</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    #canvas {
+        border: 1px solid black;
+        margin: 200px;
+    }
+</style>
+
+<body>
+    <canvas id="canvas" width="600" height="300"></canvas>
+    <img id="img">
+</body>
+<script>
+    /** @type {HTMLCanvasElement} */
+    let canvas = document.getElementById("canvas")
+    let ctx = canvas.getContext("2d");
+    let img = new Image();
+    img.src = './image/rhino.jpg';
+    img.onload = function () {
+        ctx.drawImage(img, 0, 0);
+        img.style.display = 'none';
+        writePixelData(img.width, img.height)
+    };
+    // 获得宽x、高y的rgba数据
+    function getImagePixel(imageData, x, y) {
+        if (x <= 0 || y <= 0) {
+            throw new Error("宽高必须为正数")
+        }
+        let index_0 = (y - 1) * (imageData.width * 4) + (x - 1) * 4
+        return Array.from({ length: 4 }, (item, i) => {
+            // rgba a转成0-1
+            if (i == 3) {
+                return imageData.data[index_0 + i] / 255
+            }
+            return imageData.data[index_0 + i]
+        })
+    }
+    // canvas.addEventListener('mousemove', e => {
+    //     let resultArr = getImagePixel(myImageData, e.layerX, e.layerY);
+    //     console.log(resultArr);
+    // });
+    //官方例子，方法更简单
+    function pick(event) {
+        let x = event.layerX;
+        let y = event.layerY;
+        let pixel = ctx.getImageData(x, y, 1, 1);
+        let data = pixel.data;
+        let rgba = 'rgba(' + data[0] + ',' + data[1] +
+            ',' + data[2] + ',' + (data[3] / 255) + ')';
+        return rgba
+    }
+    canvas.addEventListener('mousemove', pick);
+
+    // 在场景中写入像素数据，写一个改变透明度的函数（当然，rgba哪个值，或者哪几个值都是可以随意改变）
+    // 也就是说用这种方法可以设置canvas里任意区域(矩形)为任意颜色（只能操作图片。。。。。）
+    function writePixelData(x1, y1, x2, y2) {
+        if (arguments.length < 2) {
+            throw new Error("至少传入2个参数")
+        }
+        //传入参数小于5的时候，认为第二第三个参数是结尾坐标，此时开始坐标是[0 0]，否则是开始坐标。
+        if (arguments.length < 4) {
+            [x1, y1, x2, y2] = [0, 0, x1, y1]
+        }
+        // imageData.data是Uint8ClampedArray，并不是数组。虽然可以转成数组。但是处理完了还要转回来（Array 转 Uint8ClampedArray不知是否可行，先不管）
+        let imageData = ctx.getImageData(x1, y1, x2 - x1, y2 - y1)
+        // for循环不一定要循环数组每个元素，每4个来一次。这点以前居然一直没想到
+        for (let i = 0; i < imageData.data.length; i += 4) {
+            // 透明度变为0.8
+            imageData.data[i + 3] = 0.8 * 255
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }
+    // 数组反扁平化,会改变原数组，可以对传入的数组进行深拷贝。太麻烦这里就不弄了。
+    function unFlat(arr, step) {
+        const length = arr.length
+        return arr.map(function (item, index, selfArr) {
+            if (index % step === 0) {
+                let end = (index + step) > length ? length : index + step
+                return indexArr = Array.from({ length: end - index }, () => {
+                    return selfArr[index++]
+                })
+            } else {
+                return undefined
+            }
+        }).filter(item => item)
+    };
+
+    (() => {
+        ctx.arc(500, 200, 50, 0, Math.PI * 2)
+        ctx.fillStyle = "#16a085"
+        ctx.fill();
+        //只能改图片？？？
+        writePixelData(450, 150, 550, 250)
+    })();
+
+    // 缩放
+    var zoom = function (event) {
+        var x = event.layerX;
+        var y = event.layerY;
+        // 因为反锯齿默认是启用的，如果我们想要关闭它以看到清楚的像素。通过imageSmoothingEnabled属性的效果（不同浏览器需要不同前缀）。
+        function toggleSmoothing(boolean) {
+            //是否启用反锯齿
+            ctx.imageSmoothingEnabled = boolean;
+            ctx.mozImageSmoothingEnabled = boolean;
+            ctx.webkitImageSmoothingEnabled = boolean;
+            ctx.msImageSmoothingEnabled = boolean;
+        };
+        toggleSmoothing(false)
+        ctx.drawImage(canvas,
+            Math.abs(x - 5),
+            Math.abs(y - 5),
+            10, 10,
+            300, 0,
+            200, 200);
+    };
+    canvas.addEventListener('mousemove', zoom);
+    // 保存canvas图片
+    (() => {
+        setTimeout(() => {
+            // 只有这样直接转成png dataURL是有透明度的
+            let url1 = canvas.toDataURL('image/png');
+            //第二个参数 quality 0-1 。jpeg是没有透明度的。所以canvas是黑色。canvas本身的颜色rgba是0,0,0,0   所以默认是黑色透明
+            let url2 = canvas.toDataURL('image/jpeg', 1);
+            //这个方法转出来的对象也没有了透明度
+            canvas.toBlob(result => {
+                console.log(result);
+                let url = URL.createObjectURL(result);
+                console.log(url);
+                let imgDom = document.getElementById("img")
+                imgDom.src = url2
+            }, "image/png", "utf-8");
+            // let imgDom = document.getElementById("img")
+            // imgDom.src = url2
+        }, 1000);
+    });
+//   canvas.width = canvas.width
+</script>
+
+</html>

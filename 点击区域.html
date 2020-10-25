@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>点击区域</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    #canvas {
+        border: 1px solid black;
+        margin: 200px;
+    }
+</style>
+
+<body>
+    <canvas id="canvas" width="600" height="300"></canvas>
+</body>
+<script>
+    /** @type {HTMLCanvasElement} */
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+    (() => {
+        ctx.beginPath();
+        ctx.arc(70, 80, 10, 0, 2 * Math.PI, false);
+        ctx.fill();
+        //实验性属性，需要在浏览器进行相应设置，兼容性太差。先不管。
+        ctx.addHitRegion({ id: "circle" });
+    })()
+    canvas.addEventListener("mousemove", event => {
+        console.log(event);
+        if (event.region) {
+            alert("hit region: " + event.region);
+        }
+    })
+</script>
+
+</html>

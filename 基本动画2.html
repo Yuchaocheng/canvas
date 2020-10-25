@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas基本动画2</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    #canvas {
+        /* border: 1px solid black; */
+        /* 用黑色透明度不断覆盖实现后画的逐渐消失，背景色最好和最后的颜色相同，否则从最开始的颜色到执行多次后的颜色中间会闪一下  */
+        /* background: black; */
+    }
+
+    .container {
+        margin: 200px;
+        width: 400px;
+        height: 400px;
+        position: relative;
+        border: 2px solid black;
+    }
+
+    .container canvas {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+
+    #canvas {
+        z-index: 2;
+    }
+
+    #bgCanvas {
+        z-index: 1;
+    }
+</style>
+
+<body>
+    <div class="container">
+        <canvas id="canvas" width="400" height="400"></canvas>
+        <canvas id="bgCanvas" width="400" height="400"></canvas>
+    </div>
+</body>
+<script>
+    let canvas = document.getElementById("canvas")
+    let ctx = canvas.getContext('2d');
+    let bgCanvas = document.getElementById("bgCanvas")
+    let bgCtx = bgCanvas.getContext('2d');
+    // 离屏canvas
+    let offCanvas = document.createElement("canvas")
+    let offCtx = offCanvas.getContext('2d');
+    offCanvas.width = canvas.width
+    offCanvas.height = canvas.height
+    //beginPath：stroke是以上一次beginPath后的所有路径为基础画的。
+    //钟表动画
+    function clock() {
+        // ctx.clearRect(130, 110, 140, 140);
+        canvas.width = canvas.width
+        let now = new Date();
+        let hour = now.getHours();
+        let minute = now.getMinutes();
+        let second = now.getSeconds();
+        ctx.save();
+        ctx.translate(200, 180);
+        ctx.strokeStyle = '#325fa2';
+        //线的宽度是往两边长的
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 70, 0, Math.PI * 2)
+        ctx.stroke();
+        //画分钟刻度
+        (() => {
+            ctx.beginPath();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "black"
+            ctx.lineCap = 'round';
+            let minScale = 0;
+            let minScaleArr = Array.from({ length: 60 }, () => minScale++);
+            minScaleArr.forEach(item => {
+                ctx.save();
+                ctx.rotate(Math.PI / 30 * item);
+                ctx.beginPath();
+                ctx.moveTo(0, -60)
+                ctx.lineTo(0, -58)
+                ctx.stroke();
+                ctx.restore()
+            })
+        })();
+        //画小时刻度
+        (() => {
+            ctx.lineWidth = 4;
+            let hourScale = 0;
+            let hourScaleArr = Array.from({ length: 12 }, () => hourScale++);
+            hourScaleArr.forEach(item => {
+                ctx.save();
+                ctx.rotate(Math.PI / 6 * item);
+                ctx.beginPath();
+                ctx.moveTo(0, -60)
+                ctx.lineTo(0, -52)
+                ctx.stroke();
+                ctx.restore()
+            })
+        })();
+        //画小时轴线
+        let hourAngle = Math.PI / 6 * hour + Math.PI / 360 * minute + Math.PI / 21600 * second
+        ctx.beginPath();
+        ctx.save();
+        ctx.rotate(hourAngle);
+        ctx.moveTo(0, -40)
+        ctx.lineTo(0, 10);
+        ctx.lineWidth = "6"
+        ctx.stroke()
+        ctx.restore();
+
+        //画分钟轴线
+        let minAngle = Math.PI / 30 * minute + Math.PI / 1800 * second
+        ctx.beginPath();
+        ctx.save();
+        ctx.rotate(minAngle);
+        ctx.moveTo(0, -54)
+        ctx.lineTo(0, 14);
+        ctx.lineWidth = "4"
+        ctx.stroke()
+        ctx.restore();
+
+        //画秒的轴线
+        let secAngle = Math.PI / 30 * second
+        ctx.beginPath();
+        ctx.save();
+        ctx.rotate(secAngle);
+        ctx.moveTo(0, -45)
+        ctx.lineTo(0, 14);
+        ctx.lineWidth = "2"
+        ctx.strokeStyle = "red"
+        ctx.stroke()
+        ctx.beginPath();
+        ctx.arc(0, -50, 5, 0, Math.PI * 2);
+        ctx.stroke()
+        ctx.restore();
+
+        //画一个实心圆
+        ctx.beginPath();
+        ctx.arc(0, 0, 5, 0, Math.PI * 2)
+        ctx.fillStyle = 'red';
+        ctx.fill();
+        ctx.restore();
+        window.requestAnimationFrame(clock)
+    }
+    // window.requestAnimationFrame(clock);
+
+    //钟表动画优化
+    (() => {
+        function drawBg() {
+            bgCtx.save();
+            bgCtx.translate(200, 180);
+            bgCtx.strokeStyle = '#325fa2';
+            //线的宽度是往两边长的
+            bgCtx.lineWidth = 5;
+            bgCtx.beginPath();
+            bgCtx.arc(0, 0, 70, 0, Math.PI * 2)
+            bgCtx.stroke();
+            //画分钟刻度
+            (() => {
+                bgCtx.beginPath();
+                bgCtx.lineWidth = 2;
+                bgCtx.strokeStyle = "black"
+                bgCtx.lineCap = 'round';
+                let minScale = 0;
+                let minScaleArr = Array.from({ length: 60 }, () => minScale++);
+                minScaleArr.forEach(item => {
+                    bgCtx.save();
+                    bgCtx.rotate(Math.PI / 30 * item);
+                    bgCtx.beginPath();
+                    bgCtx.moveTo(0, -60)
+                    bgCtx.lineTo(0, -58)
+                    bgCtx.stroke();
+                    bgCtx.restore()
+                })
+            })();
+            //画小时刻度
+            (() => {
+                bgCtx.lineWidth = 4;
+                let hourScale = 0;
+                let hourScaleArr = Array.from({ length: 12 }, () => hourScale++);
+                hourScaleArr.forEach(item => {
+                    bgCtx.save();
+                    bgCtx.rotate(Math.PI / 6 * item);
+                    bgCtx.beginPath();
+                    bgCtx.moveTo(0, -60)
+                    bgCtx.lineTo(0, -52)
+                    bgCtx.stroke();
+                    bgCtx.restore()
+                })
+            })();
+            bgCtx.restore()
+        }
+        drawBg();
+        //离屏canvas画的东西
+        function drawHighBg() {
+            offCtx.save();
+            offCtx.translate(200, 180);
+            // 画一个实心圆
+            offCtx.beginPath();
+            offCtx.arc(0, 0, 5, 0, Math.PI * 2)
+            offCtx.fillStyle = 'red';
+            offCtx.fill();
+            offCtx.restore();
+        };
+        drawHighBg();
+        function animation() {
+            canvas.width = canvas.width
+            ctx.save();
+            ctx.translate(200, 180);
+            let now = new Date();
+            let hour = now.getHours();
+            let minute = now.getMinutes();
+            let second = now.getSeconds();
+            let hourAngle = Math.PI / 6 * hour + Math.PI / 360 * minute + Math.PI / 21600 * second
+            ctx.beginPath();
+            ctx.save();
+            ctx.rotate(hourAngle);
+            ctx.moveTo(0, -40)
+            ctx.lineTo(0, 10);
+            ctx.lineWidth = "6"
+            ctx.stroke()
+            ctx.restore();
+
+            //画分钟轴线
+            let minAngle = Math.PI / 30 * minute + Math.PI / 1800 * second
+            ctx.beginPath();
+            ctx.save();
+            ctx.rotate(minAngle);
+            ctx.moveTo(0, -54)
+            ctx.lineTo(0, 14);
+            ctx.lineWidth = "4"
+            ctx.stroke()
+            ctx.restore();
+
+            //画秒的轴线
+            let secAngle = Math.PI / 30 * second
+            ctx.beginPath();
+            ctx.save();
+            ctx.rotate(secAngle);
+            ctx.moveTo(0, -45)
+            ctx.lineTo(0, 14);
+            ctx.lineWidth = "2"
+            ctx.strokeStyle = "red"
+            ctx.stroke()
+            ctx.beginPath();
+            ctx.arc(0, -50, 5, 0, Math.PI * 2);
+            ctx.stroke()
+            ctx.restore();
+            ctx.restore();
+            ctx.drawImage(offCanvas, 0, 0)
+            window.requestAnimationFrame(animation)
+        }
+        window.requestAnimationFrame(animation)
+    })();
+
+    /* 
+        实践后的启发
+
+        1.使用多层画布去画静态图形是性能最好的。因为一经画好就再也不用去动了
+        2.离屏canvas比多层画布多了一步，就是每一次绘制调用一下drawImage。但是效率提升依然明显。因为绘制工作只做了一次。
+        3.如果静态内容需要的层级很高吗，是不能用多层画布去画的
+    
+     */
+
+
+
+
+
+
+
+
+
+    function roundRotate() {
+        const colors = ["#1abc9c", "#2ecc71", "#3498db", "#9b59b6", "#f1c40f", "#e67e22", "#e74c3c", "#bdc3c7", "#95a5a6"]
+        const MaxR = 150;//最大半径
+        const minScale = Math.PI * 0.005 //一次绘制弧线的度数。决定旋转速度。并且和透明度值共同决定尾巴长度。
+        let aArcObjList = [];//运动弧实例数组
+
+        // 运动弧构造函数
+        class ArcMoving {
+            //实例属性可以定义在类开头，不一定要写在构造函数中。如果该实例属性不需要传参赋值，这样写更清晰
+            r = Math.random() * MaxR
+            constructor(startAng, color) {
+                this.color = color
+                this.rotateAng = startAng;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(200, 200, this.r, this.rotateAng, this.rotateAng + minScale)
+                ctx.strokeStyle = this.color
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                // 透明度不能放在实例里，要固定时间去增加透明度，如果放在构造函数里，多个实例就会在执行该函数时多次增加透明度
+                // ctx.fillStyle = "rgba(0,0,0,0.05)";
+                // ctx.fillRect(0, 0, canvas.width, canvas.height);
+                this.rotateAng += minScale;
+            }
+        }
+        aArcObjList = Array.from({ length: 100 }).map((item, index) => {
+            let color = colors[Math.floor(Math.random() * colors.length)];
+            let startAng = Math.random() * Math.PI * 2
+            return new ArcMoving(startAng, color)
+        })
+        function drawCn() {
+            aArcObjList.forEach(item => {
+                item.draw()
+            })
+            // 不断用带透明度的黑色覆盖图形，产生渐变效果。要达到的目的就是新画的亮度高、后画的亮度逐渐降低，直至被黑色遮盖。
+            // 透明度的值就决定了后画的被完全覆盖的重绘次数，此处0.05在重绘到20次后就完全覆盖了。
+            ctx.fillStyle = "rgba(0,0,0,0.05)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            window.requestAnimationFrame(drawCn)
+        }
+        window.requestAnimationFrame(drawCn)
+
+
+    }
+    // roundRotate();
+</script>
+
+</html>

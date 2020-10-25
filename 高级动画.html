@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas高级动画</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    #canvas {
+        background: black;
+        background: rgba(255, 255, 255, 0.3);
+        border: 1px solid;
+        margin: 200px;
+    }
+</style>
+
+<body>
+    <canvas id="canvas" width="600" height="300"></canvas>
+</body>
+<script>
+    /* 
+    canvas动画最大的限制可能就是图像一旦绘制出来，它就是一直保持那样了。如果需要移动它，我们不得不对所有东西（包括之前的）进行重绘。
+    重绘是相当费时的，而且性能很依赖于电脑的速度。
+     */
+    let canvas = document.getElementById('canvas');
+    let ctx = canvas.getContext('2d');
+    let raf = null;
+    class Ball {
+        x = 100;
+        y = 100;
+        vx = 5;
+        vy = 2;
+        radius = 25;
+        color = "blue";
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)
+            ctx.fillStyle = this.color;
+            ctx.fill();
+        }
+    }
+    let ball = new Ball();
+    function drawFun() {
+        // ctx.clearRect(0, 0, canvas.width, canvas.height);
+        //尾巴效果
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ball.draw();
+        //边界检测，如果到了指定边界。就往反方向弹。
+        if (ball.y + ball.vy > canvas.height || ball.y + ball.vy < 0) {
+            ball.vy = -ball.vy;
+        }
+        if (ball.x + ball.vx > canvas.width || ball.x + ball.vx < 0) {
+            ball.vx = -ball.vx;
+        }
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+        ball.vy *= .99;
+        ball.vy += .25;
+        console.log(ball.vy);
+        // raf = window.requestAnimationFrame(drawFun);
+    }
+    canvas.addEventListener('mouseover', () => {
+        //返回值和setInterval类似，返回调用的次数
+        // raf = window.requestAnimationFrame(drawFun);
+    });
+
+    canvas.addEventListener('mouseout', () => {
+        window.cancelAnimationFrame(raf);
+    });
+    canvas.addEventListener('mousemove', function (e) {
+        raf = window.requestAnimationFrame(() => {
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ball.x = e.offsetX;
+            ball.y = e.offsetY;
+            ball.draw();
+        });
+    });
+
+    ball.draw();
+</script>
+
+</html>

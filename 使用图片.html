@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas使用图片</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    #canvas {
+        border: 1px solid black;
+        margin: 200px;
+    }
+</style>
+
+<body>
+    <button onclick="startCap()">抓图</button>
+    <canvas id="canvas" width="600" height="350"></canvas>
+    <canvas id="canvas2" width="600" height="350"></canvas>
+    <video name="media" controls id="video" preload="auto">
+        <!-- 浏览器选择支持他的文件类型 -->
+        <source src="https://static.appstore.czfw.cn/video-jiayou2.mp4" type="video/mp4">
+        <source src="https://static.appstore.czfw.cn/video-jiayou.webm" type="video/webm">
+        <source src="https://static.appstore.czfw.cn/video-jiayou.Ogg" type="video/ogg">
+        您的浏览器暂不支持视频播放
+    </video>
+
+</body>
+<script>
+    /** @type {HTMLCanvasElement} */
+    let ctx = document.getElementById("canvas").getContext("2d");
+    (() => {
+        var img = new Image();   // 创建img元素
+        //img 本地图片作为图片源
+        // img.src = './image/bridge.jpg'; // 设置图片源地址
+        img.src = './image/drawImage切片理解图.jpg'; // 设置图片源地址
+        //data: url 方式作为图片源
+        // img.src = 'data:image/gif;base64,R0lGODlhCwALAIAAAAAA3pn/ZiH5BAEAAAEALAAAAAALAAsAAAIUhA+hkcuO4lmNVindo7qyrIXiGBYAOw==';
+        img.onload = function () {
+            // 执行drawImage语句。drawImage只有3个参数的时候，后两个参数代表x,y即再canvas中的位置
+            ctx.drawImage(img, 0, 0)
+
+            //drawImage如果有8个参数，则第二第三个参数的含义和以前不同，2-5四个参数代表从图片中剪切的位置和大小，最后四个参数代表其在canvas中的位置和大小。
+            //具体理解可以看image/drawImage切片理解图.jpg
+            // ctx.drawImage(img, 170, 160, 90, 100, 100, 100, 180, 200);
+        }
+    })();
+    /* 注意：图像可能会因为大幅度的缩放而变得起杂点或者模糊。如果您的图像里面有文字，那么最好还是不要进行缩放，因为那样处理之后很可能图像里的文字就会变得无法辨认了。 */
+    function startCap() {
+        var video = document.getElementById('video');
+        //drawImage(image, x, y, width, height)缩放
+        ctx.drawImage(video, 0, 0, 480, 320);
+    }
+    //使用视频帧
+    (() => {
+        setTimeout(() => {
+            var video = document.getElementById('video');
+            ctx.drawImage(video, 0, 0, 480, 320);
+        }, 1000);
+    });
+</script>
+
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas基本动画1</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    #canvas {
+        /* border: 1px solid black; */
+        background: black;
+        /* background: #eee; */
+        margin: 200px;
+    }
+</style>
+
+<body>
+    <canvas id="canvas" width="400" height="400"></canvas>
+</body>
+<script>
+    /* 
+    canvas动画最大的限制可能就是图像一旦绘制出来，它就是一直保持那样了。如果需要移动它，我们不得不对所有东西（包括之前的）进行重绘。
+    重绘是相当费时的，而且性能很依赖于电脑的速度。
+    
+    
+     */
+    let ctx = document.getElementById("canvas").getContext('2d');
+    let earth = new Image();
+    earth.src = "./image/earth.png";
+    //画一个太阳系的动画
+    function static(angle) {
+        ctx.clearRect(0, 0, 400, 400)
+        ctx.save();
+        ctx.translate(200, 200);
+
+        ctx.shadowBlur = 2;
+        ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
+        ctx.fillStyle = radialGradient();
+        ctx.beginPath();
+        ctx.arc(0, 0, 50, 0, Math.PI * 2, true);
+        //fillRect是不用fill一下的，其他要填充就要手动调用fill。
+        ctx.fill();
+        //再画一条线
+        ctx.beginPath();
+        ctx.arc(0, 0, 150, 0, Math.PI * 2, true);
+        ctx.strokeStyle = '#001522';
+        ctx.stroke();
+        //把地球画到线上
+        ctx.save();
+        //rotate不仅仅针对地球，也针对月亮，月亮画图的时候在地球rotate的基础上加上自己的rotate
+        ctx.rotate(angle);
+        ctx.drawImage(earth, 150 - 20, 0 - 20, 40, 40);
+        ctx.fillStyle = "#7f8c8d"
+        ctx.beginPath();
+        ctx.translate(150,0);
+        ctx.rotate(5*angle)
+        ctx.arc(40,0,6,0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+
+        ctx.restore()
+    }
+    function init() {
+        let speed = 10;
+        let angle = 0;
+        setInterval(() => {
+            static(angle / 180 * Math.PI);
+            angle += speed / 50
+        }, 20)
+    }
+    init();
+
+    //径向渐变
+    function radialGradient() {
+        let radgrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 50);
+        radgrad.addColorStop(0, 'white');
+        radgrad.addColorStop(0.7, '#fffce1');
+        radgrad.addColorStop(1, 'black');
+        return radgrad;
+    };
+    //clearRect是不能清除路径的
+    (() => {
+        //无法清除，因为rect的路径clearRect是不清除的，只清除canvas上的内容，不清楚路径
+        // 那么我们想清除路径怎么办呢，就要调用beginPath()，清空之前的路径，开始一条新的路径。如果不调用beginPath。那么每次划线都是在上一次的基础上接着画
+        ctx.rect(0, 0, 200, 200);
+        // ctx.fill()
+        ctx.stroke();
+        ctx.clearRect(0, 0, 220, 220);
+        beginPath();
+        ctx.stroke();
+        // ctx.fill()
+    });
+    //平移
+    (() => {
+        ctx.arc(2,2,2,0,Math.PI*2)
+        ctx.fill();
+        function translate1() {
+            let x = 2
+            let speed = 2
+            function draw() {
+                ctx.clearRect(0, 0, 400, 400)
+                ctx.fillRect(300,300,350,350)
+                ctx.save()
+                ctx.fillStyle = "green"
+                //1和2 这两步非常关键，可以在一次变换中继续第二次变换，针对个体的变换。但是如果已经有图形在canvas上呢？
+                //已经有图形在canvas上也不会受任何影响，因为变换过后图形并不会移动。图形还在那里，只不过下次开始画的时候收到变换的影响。
+                ctx.save()
+                ctx.translate(x, 0)
+                ctx.beginPath();
+                ctx.arc(20, 20, 20, 0, Math.PI * 2, true)
+                ctx.fill();
+                ctx.restore()
+                //2
+                ctx.save()
+                ctx.translate(0, x)
+                ctx.beginPath();
+                ctx.arc(20, 20, 20, 0, Math.PI * 2, true)
+                ctx.fill();
+                ctx.restore()
+
+                if (x >= 360 || x <= 0) {
+                    speed = -speed
+                }
+                x += speed;
+                ctx.restore()
+                window.requestAnimationFrame(draw);
+            }
+            window.requestAnimationFrame(draw);
+        }
+        // translate1();
+        function translate2() {
+            let x = 2
+            let speed = 2
+            function draw() {
+                ctx.clearRect(0, 0, 400, 400)
+                ctx.fillRect(300,300,350,350)
+                ctx.fillStyle = "green"
+                ctx.beginPath();
+                ctx.arc(20 + x, 20, 20, 0, Math.PI * 2, true)
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(20, 20+x, 20, 0, Math.PI * 2, true)
+                ctx.fill();
+                if (x >= 360 || x <= 0) {
+                    speed = -speed
+                }
+                x += speed;
+                window.requestAnimationFrame(draw);
+            }
+            window.requestAnimationFrame(draw);
+        }
+        // translate2();
+    })();
+</script>
+
+</html>

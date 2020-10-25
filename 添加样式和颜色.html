@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas样式和颜色</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    #canvas {
+        /* border: 1px solid darkcyan; */
+        margin: 0 auto;
+    }
+</style>
+
+<body>
+    <canvas id="canvas" width="600" height="300"></canvas>
+    <canvas id="canvas2" width="600" height="300"></canvas>
+</body>
+<script>
+    /* fillStyle 和 strokeStyle 填充和线条色，默认都为黑色 */
+    let ctx = document.getElementById("canvas").getContext("2d");
+
+    //fillStyle示例
+    (() => {
+        for (let i = 0; i < 6; i++) {
+            for (let j = 0; j < 6; j++) {
+                ctx.fillStyle = `rgb(${Math.floor(255 - 42.5 * i)},${Math.floor(255 - 42.5 * j)},0)`;
+                ctx.fillRect(j * 25, i * 25, 25, 25);
+            }
+        }
+    });
+
+    //globalAlpha（ canvas 里所有图形的透明度） 示例
+    (() => {
+        //先是画了四个方块
+        ctx.fillStyle = '#FD0';
+        ctx.fillRect(0, 0, 75, 75);
+
+        ctx.fillStyle = '#6C0';
+        ctx.fillRect(75, 0, 75, 75);
+
+        ctx.fillStyle = '#09F';
+        ctx.fillRect(0, 75, 75, 75);
+
+        ctx.fillStyle = '#F30';
+        ctx.fillRect(75, 75, 75, 75);
+        ctx.fillStyle = '#FFF';
+
+
+        // 设置透明度值。注意：这时候canvas已经画好的东西是不透明的。这个属性只是针对接下来画的图形会变透明。
+        ctx.globalAlpha = 0.5;
+        /* 以75 75为原点画一个圆 */
+        ctx.beginPath();
+        ctx.arc(75, 75, 20, 0, Math.PI * 2, true);
+        ctx.fill();
+    });
+
+    //用rgba画透明图形
+    (() => {
+        // 画背景
+        ctx.fillStyle = 'rgb(255,221,0)';
+        ctx.fillRect(0, 0, 150, 37.5);
+
+        ctx.fillStyle = 'rgb(102,204,0)';
+        ctx.fillRect(0, 37.5, 150, 37.5);
+
+        ctx.fillStyle = 'rgb(0,153,255)';
+        ctx.fillRect(0, 75, 150, 37.5);
+
+        ctx.fillStyle = 'rgb(255,51,0)';
+        ctx.fillRect(0, 112.5, 150, 37.5);
+
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        ctx.fillRect(0, 0, 75, 37.5)
+    });
+
+    // Line styles
+    (() => {
+        ctx.beginPath();
+        ctx.moveTo(100, 0);
+        ctx.lineTo(100, 300);
+        ctx.stroke();
+        //先画一个网格
+        // ctx.beginPath();
+        // ctx.moveTo(0, 0);
+        // ctx.lineTo(100, 0);
+        // ctx.stroke()
+        // for (let i = 0; i < 600; i++) {
+        //     ctx.moveTo(i, 0);
+        //     ctx.lineTo(i, 300);
+        //     ctx.stroke("#dfe4ea")
+        // }
+    });
+
+    //画虚线
+    (() => {
+        var offset = 0;
+        function draw() {
+            //默认是body中的第一个canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            //线段与间隙的长度
+            ctx.setLineDash([2, 2]);
+            //lineDashOffset 设置起始的偏移量。一般这个偏移量不用超过setLineDash中线段与间隙的总和。否则又开始新一轮循环。就没有意义了
+            ctx.lineDashOffset = offset;
+            ctx.moveTo(10, 10)
+            ctx.lineTo(110, 10)
+            ctx.stroke()
+            // ctx.strokeRect(10, 10, 100, 100);
+        }
+        function march() {
+            offset++;
+            if (offset > 16) {
+                offset = 0;
+            }
+            draw();
+            setTimeout(march, 20);
+        }
+
+        march();
+    });
+
+
+    //渐变createLinearGradient(x1, y1, x2, y2),createRadialGradient(x1, y1, r1, x2, y2, r2)。
+    (() => {
+        let lineargradient = ctx.createLinearGradient(20, 20, 20, 120);
+        let radialgradient = ctx.createRadialGradient(75, 75, 0, 75, 75, 100);
+        //gradient.addColorStop(position, color)
+        lineargradient.addColorStop(0, '#00ABEB');
+        lineargradient.addColorStop(0.5, '#fff');
+        lineargradient.addColorStop(0.5, '#26C000');
+        lineargradient.addColorStop(1, '#fff');
+        // ctx.fillStyle = lineargradient;
+        // ctx.fillRect(20, 20, 100, 100);
+
+        /* 径向渐变，不是明白 */
+        var radgrad = ctx.createRadialGradient(100, 100, 20, 120, 120, 20);
+        radgrad.addColorStop(0, 'white');
+        // radgrad.addColorStop(0.9, '#019F62');
+        radgrad.addColorStop(1, 'green');
+        ctx.fillStyle = radgrad;
+        ctx.fillRect(0, 0, 200, 200);
+
+    });
+
+    //图案样式 Patterns。createPattern(image, type)。
+    (() => {
+        var img = new Image();
+        img.src = './image/bridge.jpg';
+        var ptrn = ctx.createPattern(img, 'repeat');
+        ctx.fillStyle = ptrn;
+        ctx.fillRect(0, 0, 600, 300);
+        //必须等图片加载完成了再ctx.createPattern。这一点和drawImage 不同。
+        // img.onload = function(){
+        //     //创建图案
+        //     var ptrn = ctx.createPattern(img, 'repeat');
+        //     ctx.fillStyle = ptrn;
+        //     ctx.fillRect(0, 0, 600, 300);
+        // };
+    });
+
+    //画阴影
+    (() => {
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+        ctx.shadowBlur = 2;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+
+        ctx.font = "20px Times New Roman";
+        ctx.fillStyle = "Black";
+        ctx.fillText("Sample String", 5, 30);
+    });
+
+    //填充规则
+    (() => {
+        ctx.beginPath();
+        ctx.arc(50, 50, 30, 0, Math.PI * 2, true);
+        ctx.arc(50, 50, 15, 0, Math.PI * 2, true);
+        ctx.fill("evenodd");
+    })();
+</script>
+
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas的优化</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        width: 100vw;
+        height: 100vh;
+    }
+
+
+    .box {
+        border: 1px solid black;
+        margin: 200px;
+        width: 600px;
+        height: 300px;
+        position: relative;
+    }
+
+    .box canvas {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+
+    #canvas {
+        z-index: 1;
+    }
+
+    #highCanvas {
+        z-index: 2;
+    }
+</style>
+
+<body>
+    <div class="box">
+        <canvas id="canvas" width="600" height="300"></canvas>
+        <canvas id="highCanvas" width="600" height="300"></canvas>
+    </div>
+</body>
+<script>
+    //canvas的优化
+    //试图画布
+    let canvas = document.getElementById("canvas");
+    let highCanvas = document.getElementById("highCanvas");
+    let ctx = canvas.getContext("2d");
+    let highCtx = highCanvas.getContext("2d");
+    highCtx.fillStyle = "blue";
+    highCtx.fillRect(200, 50, 200, 200);
+    // 1.离屏渲染
+    (() => {
+        let offCanvas = document.createElement("canvas");//离屏canvas 通过代码创建出来的
+        offCanvas.width = canvas.width;
+        offCanvas.height = canvas.height;
+        //详情见基本动画2 钟表动画优化
+        /* 
+        实践后的启发
+        1.使用多层画布去画静态图形是性能最好的。因为一经画好就再也不用去动了
+        2.离屏canvas比多层画布多了一步，就是每一次绘制调用一下drawImage。但是效率提升依然明显。因为离屏canvas上的内容只绘制做了一次。
+        3.如果静态内容需要的z-index层级高于可视画布，是不能用多层画布去画的 ??。
+     */
+        // 关于第三点的实验
+        (() => {
+            let startAng = 0;
+            let endAngle = 0;
+            let step = Math.PI / 24;
+            function draw() {
+                // canvas.width = canvas.width
+                ctx.fillStyle = "rgba(0,0,0,0.04)"
+                ctx.fillRect(0, 0, canvas.width, canvas.height)
+                ctx.beginPath();
+                ctx.strokeStyle = "#1abc9c"
+                ctx.lineWidth = 2
+                endAngle = step + startAng
+                ctx.arc(300, 150, 80, startAng, endAngle);
+                ctx.stroke();
+                startAng += step
+                window.requestAnimationFrame(draw)
+            }
+            window.requestAnimationFrame(draw)
+
+        })()
+    })();
+
+    // 2.避免浮点数的坐标点，用整数取而代之(因为浏览器为了达到抗锯齿的效果会做额外运算，所以使用整数坐标点)
+
+    // 3.drawImage渲染到主canvas（最终呈现的canvas）的时候，用最简单的drawImage(img,width,height)至于缩放、裁剪都可以在离屏canvas中去做
+
+    // 4.使用多层画布去画一个复杂的场景。所谓多层画布即多个canvas元素，设置z-index
+
+    // 5.制操作的性能开销较高，可以创建一个包含所有线条的路径，然后通过单个绘制路径调用进行绘制（即通过moveTo移动笔触，而只stroke一次）
+
+    // 6.清空画布，性能依次提高
+    /*
+    *
+    1 context.fillRect()
+    2 context.clearRect()
+    3 canvas.width = canvas.width; // 一种画布专用的技巧
+    *
+     */
+    // 6.减少调用canvas的api
+    /*
+    比如像背景可以使用css属性设置或者img标签加一些定位什么的
+    画布的缩放可以使用CSS transforms，不要将小画布放大，而是去将大画布缩小？
+
+     */
+
+</script>
+
+</html>
