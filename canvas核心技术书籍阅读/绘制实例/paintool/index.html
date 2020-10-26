@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>绘制罗盘</title>
+    <link rel="stylesheet/less" href="style.less" />
+    <script script src="http://cdn.bootcss.com/less.js/2.7.0/less.js"></script>
+    <!-- 原生ui组件库 -->
+    <script type="module">
+      import "https://unpkg.com/xy-ui";
+      import "./index.js"
+    //   import "./toolCanvas.js"
+    </script>
+  </head>
+
+  <body>
+    <div id="app">
+      <div class="head">
+        <div class="item">
+          <span>绘制：</span><xy-color-picker></xy-color-picker>
+        </div>
+        <div class="item">
+          <span>填充：</span><xy-color-picker></xy-color-picker>
+        </div>
+        <div class="item">
+          <span>线宽：</span
+          ><xy-select type="primary" defaultvalue="1">
+            <xy-option value="1">1.0</xy-option>
+            <xy-option value="2">2.0</xy-option>
+            <xy-option value="3">3.0</xy-option>
+            <xy-option value="4">4.0</xy-option>
+            <xy-option value="5">5.0</xy-option>
+          </xy-select>
+        </div>
+        <div class="item">
+          <xy-button type="primary">清空画布</xy-button>
+        </div>
+        <div class="item">
+          <xy-button type="primary">画布截屏</xy-button>
+        </div>
+      </div>
+      <div class="main">
+        <div class="left">
+          <canvas id="toolCanvas" width="80" height="680">浏览器不支持canvas</canvas>
+        </div>
+        <div class="right">
+          <canvas id="drawCanvas">浏览器不支持canvas</canvas>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

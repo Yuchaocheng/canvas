@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>选中放大</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #dddddd;
+      }
+
+      #canvas {
+        position: absolute;
+        left: 0;
+        top: 0;
+        background: #ffffff;
+        cursor: crosshair;
+      }
+
+      #selectBox {
+        /* display: none; */
+        position: absolute;
+        border: 2px solid #2ecc71;
+      }
+
+      #canvas-container {
+        width: 1000px;
+        height: 600px;
+        position: relative;
+        margin: 200px 0 0 200px;
+      }
+      .img-box {
+        width: 1000px;
+        height: 600px;
+        border: 2px solid darkkhaki;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="canvas-container">
+      <canvas id="canvas" width="1000" height="600">浏览器不支持</canvas>
+      <div id="selectBox"></div>
+    </div>
+    <button onclick="reset()" style="margin: 20px 200px; padding: 2px 10px">
+      重置
+    </button>
+    <div class="img-box">
+      <img alt="" id="img" />
+    </div>
+    <script>
+      let container = document.getElementById("canvas-container");
+      let canvas = document.getElementById("canvas");
+      let context = canvas.getContext("2d");
+      let img = null;
+      // init
+      (() => {
+        img = new Image();
+        img.src = "../image/sotne.jpg";
+        img.onload = () => {
+          context.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+      })();
+
+      let selectBoxDom = document.getElementById("selectBox");
+      /* 鼠标按下后的初始位置 */
+      let initX = 0;
+      let initY = 0;
+      let endX = 0;
+      let endY = 0;
+      // 选择区域
+      function mousemoveSelect(e) {
+          console.log(e,'e');
+        // layerX 和 layerY 在拖动事件中有问题。坐标有时候会不准确。具体原因暂不清楚。所以这里就有clientX - 距左边距离
+        let layerX = e.clientX - 200;
+        let layerY = e.clientY - 200;
+        if (layerX <= 10 || layerY <= 10) {
+          return;
+        }
+        if (initX > layerX) {
+          // console.log(selectBoxDom.style.left);
+          selectBoxDom.style.left = layerX + "px";
+        }
+        if (initY > layerY) {
+          selectBoxDom.style.top = layerY + "px";
+        }
+        selectBoxDom.style.width = Math.abs(initX - layerX) + "px";
+        selectBoxDom.style.height = Math.abs(initY - layerY) + "px";
+      }
+      container.addEventListener("mousedown", (e) => {
+        initX = e.layerX;
+        initY = e.layerY;
+        selectBoxDom.style.width = 0;
+        selectBoxDom.style.height = 0;
+        selectBoxDom.style.left = initX + "px";
+        selectBoxDom.style.top = initY + "px";
+        selectBoxDom.style.display = "block";
+        container.addEventListener("mousemove", mousemoveSelect);
+      });
+      container.addEventListener("mouseup", (e) => {
+        container.removeEventListener("mousemove", mousemoveSelect);
+        selectBoxDom.style.display = "none";
+        context.drawImage(
+          canvas,
+          parseFloat(selectBoxDom.style.left),
+          parseFloat(selectBoxDom.style.top),
+          parseFloat(selectBoxDom.style.width),
+          parseFloat(selectBoxDom.style.height),
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+      });
+      function reset() {
+        let x = canvas.toDataURL();
+        canvas.toBlob((result) => {
+          console.log(e);
+        });
+        let img = document.getElementById("img");
+        img.src = x;
+        context.drawImage(canvas, 0, 0, canvas.width, canvas.height);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>基础知识</title>
+    <style>
+      /* 1 canvas元素的背景色默认和父元素一致 */
+      .box {
+        width: 1000px;
+        height: 600px;
+        margin: 200px;
+        background: #eee;
+      }
+
+      body {
+        background: #dddddd;
+      }
+
+      #canvas {
+        margin: 20px;
+        background: #ffffff;
+        border: thin solid #aaaaaa;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="box">
+      <canvas id="canvas" width="800" height="500">浏览器不支持</canvas>
+    </div>
+    <script>
+      let canvas = document.getElementById("canvas");
+      let context = canvas.getContext("2d");
+      let img = new Image();
+      (() => {
+        img.src = "../image/rhino.jpg";
+        img.onload = function () {
+          /* createPattern可以是 image、canvas、video元素，第二个参数也是必填，没有默认值 */
+          //   var pattern = context.createPattern(img, "repeat");
+          //   var pattern = context.createPattern(img, "repeat-x");
+          //   var pattern = context.createPattern(img, "repeat-y");
+          var pattern = context.createPattern(img, "no-repeat");
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          context.fillStyle = pattern;
+          context.fillRect(0, 0, canvas.width, canvas.height);
+        };
+      })();
+    </script>
+  </body>
+</html>
