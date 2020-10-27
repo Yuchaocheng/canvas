@@ -111,4 +111,78 @@ export default class ToolCanvas {
         this.context.lineTo(x + 13, y + 36);
         this.context.lineTo(x + 11, y + 34);
     }
+
+    // 曲线
+    curveIcon(order = 5) {
+        let x = INIT_X;
+        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
+        this.baseRect([x, y, WIDTH, HEIGHT], true);
+        this.context.save();
+        this.context.translate(x, y);
+        this.context.beginPath();
+        this.context.moveTo(36, 6);
+        this.context.quadraticCurveTo(-10, 2, 40, 44);
+        this.context.stroke();
+        this.context.restore();
+    }
+    // 文字 （直接用文字绘制就行，不需要用线描出来）
+    fontIcon(order = 6) {
+        let x = INIT_X;
+        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
+        this.baseRect([x, y, WIDTH, HEIGHT], true);
+        this.context.save();
+        this.context.translate(x, y);
+        this.context.beginPath();
+        this.context.font = "48px Palatino"; //默认10px sans-serif
+        this.context.textAlign = "center"; //默认start
+        this.context.textBaseline = "middle"; //默认alphabetic
+        // 字体位置也算一个坑。一般如果不设置的话，默认可以理解为在设置坐标的左下角
+        let fillColor = "rgba(100, 140, 230, 0.5)";
+        this.context.fillStyle = fillColor;
+        this.context.strokeText("T", 25, 30);
+        this.context.fillText("T", 25, 30);
+        this.context.restore();
+    }
+    // 尾随效果
+    tailIcon(order = 7) {
+        let x = INIT_X;
+        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
+        this.baseRect([x, y, WIDTH, HEIGHT], true);
+        this.context.save();
+        this.context.translate(x, y);
+        this.context.strokeStyle = "rgba(100, 140, 230, 0.6)";
+        let cx = 16;
+        let cy = 14;
+        for (let index = 0; index < 10; index++) {
+            if (index < 5) {
+                cx += 2.5;
+                cy += 2;
+            } else {
+                cx -= 2;
+                cy += 2;
+            }
+            this.context.beginPath();
+            this.context.arc(cx, cy, 12, 0, Math.PI * 2);
+            this.context.stroke();
+        }
+        this.context.restore();
+    }
+    // 橡皮擦
+    eraserIcon(order = 8) {
+        let x = INIT_X;
+        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
+        this.baseRect([x, y, WIDTH, HEIGHT], true);
+        this.context.save();
+        this.context.translate(x, y);
+        let offsetX = WIDTH / 2;
+        let offsetY = HEIGHT / 2;
+        this.context.beginPath();
+        this.context.arc(offsetX, offsetY, 20, 0, Math.PI * 2);
+        this.context.stroke();
+        /* clip()裁剪后不能访问裁剪区域的其他区域（只能渲染在裁剪区域）
+           clip()能限定显示区域 */
+        this.context.clip();
+        this.context.fillRect(5, 5, 40, 40);
+        this.context.restore();
+    }
 }
