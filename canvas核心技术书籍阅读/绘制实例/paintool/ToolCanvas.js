@@ -4,11 +4,51 @@ const INIT_X = 15;
 const INIT_Y = 18;
 const CONTENT_COLOR = "#648CE6"; // 工具图形内容颜色
 const ITEM_OFFSET_Y = 12; // 工具图形间距
+const GRID_COLOR = "rgb(0, 0, 200)"; // 网格颜色
+
+// 对象数组新增or编辑
+function iconListUpdate(arr, key, obj) {
+    let existIndex = arr.findIndex((item) => item[key] === obj[key]);
+    if (typeof existIndex !== "undefined") {
+        arr.splice(existIndex, 1, obj);
+    } else {
+        arr.push(obj);
+    }
+}
+// 节流函数 防止频繁触发
+function throttle(fn, wait) {
+    var pre = Date.now();
+    return function () {
+        var context = this;
+        var args = arguments;
+        var now = Date.now();
+        if (now - pre >= wait) {
+            fn.apply(context, args);
+            pre = Date.now();
+        }
+    };
+}
+
 export default class ToolCanvas {
     constructor(canvas) {
         this.canvas = canvas;
         this.context = canvas.getContext("2d");
         this.context.strokeStyle = CONTENT_COLOR;
+        this.curLayerX = -1;
+        this.curLayerY = -1;
+        this.aIconList = [
+            // {type:"line",x:0,y:0,w:0,h:0}
+        ]; //记录没个icon的位置，否则没法制作点击事件
+
+        /* 增加事件监听 */
+        canvas.addEventListener("mousemove", (e) => {
+            this.dealMouseMove(e);
+        });
+        canvas.addEventListener("mouseout", () => {
+            this.curLayerX = -1;
+            this.curLayerY = -1;
+        });
+        canvas.addEventListener("mousedown", this.dealMouseDown);
     }
     // 基础框
     baseRect(param, halfShadow) {
@@ -39,12 +79,14 @@ export default class ToolCanvas {
         let x = INIT_X;
         let y = INIT_Y + order * ITEM_OFFSET_Y;
         this.baseRect([INIT_X, INIT_Y, WIDTH, HEIGHT]);
+
         this.context.beginPath();
         /* 当lineWidth是奇数时，会存在线宽大于设置的宽度，并且两边半个px存在阴影的情况，可以多加0.5像素 */
         let offset = horizontalOffset + 0.5;
         this.context.moveTo(x + offset, y + offset);
         this.context.lineTo(x + WIDTH - offset, y + HEIGHT - offset);
         this.context.stroke();
+        iconListUpdate(this.aIconList, "type", { x, y, w: WIDTH, h: HEIGHT, type: "line" });
     }
     // 矩形
     rectIcon(insideOffset = 4, order = 1) {
@@ -171,18 +213,73 @@ export default class ToolCanvas {
     eraserIcon(order = 8) {
         let x = INIT_X;
         let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
-        this.baseRect([x, y, WIDTH, HEIGHT], true);
+        this.baseRect([x, y, WIDTH, HEIGHT]);
         this.context.save();
         this.context.translate(x, y);
         let offsetX = WIDTH / 2;
         let offsetY = HEIGHT / 2;
         this.context.beginPath();
         this.context.arc(offsetX, offsetY, 20, 0, Math.PI * 2);
+        this.context.strokeStyle = "rgba(100, 140, 200, 0.5)";
         this.context.stroke();
-        /* clip()裁剪后不能访问裁剪区域的其他区域（只能渲染在裁剪区域）
-           clip()能限定显示区域 */
+        /* clip()裁剪后不能访问裁剪区域的其他区域（只能渲染在裁剪区域）。clip()能限定显示区域 */
         this.context.clip();
-        this.context.fillRect(5, 5, 40, 40);
+        this.gridIcon(0, 0, WIDTH, HEIGHT, 4);
         this.context.restore();
     }
+
+    // 画网格线
+    gridIcon(x, y, w, h, gridGap, color = GRID_COLOR) {
+        this.context.save();
+        /* 网格作为背景，需要部分透明 */
+        this.context.strokeStyle = color;
+        this.context.fillStyle = "#ffffff";
+        this.context.lineWidth = 0.5;
+        this.context.fillRect(x, y, w, h);
+        this.context.globalAlpha = 0.1;
+        let currentX = 0;
+        let currentY = 0;
+        this.context.beginPath();
+        while (currentX < w) {
+            this.context.moveTo(currentX, 0);
+            this.context.lineTo(currentX, h);
+            currentX += gridGap + 0.5;
+        }
+        while (currentY < h) {
+            this.context.moveTo(0, currentY);
+            this.context.lineTo(w, currentY);
+            currentY += gridGap + 0.5;
+        }
+        this.context.stroke();
+        this.context.restore();
+    }
+
+    // 备份当前画布
+    backupCanvas() {
+        // 清空画布
+        /* 创建的dom元素如果没被append到html中，那么就和其他变量一样，随GC回收 */
+        let backupCanvas = document.getElementById("canvas");
+        let backupCtx = backupCanvas.getContext("2d");
+        backupCtx.drawImage(this.canvas, this.canvas.width, this.canvas.height);
+        return backupCanvas;
+    }
+    // 处理鼠标移动事件
+    dealMouseMove(e) {
+        this.curLayerX = e.layerX;
+        this.curLayerY = e.layerY;
+        let inIcon = this.aIconList.find((item) => {
+            let xIn = e.layerX >= item.x && e.layerX <= item.x + item.w;
+            console.log(xIn);
+            let yIn = e.layerY >= item.y && e.layerY <= item.y + item.h;
+            console.log(yIn);
+            return xIn && yIn;
+        });
+        if (typeof inIcon !== "undefined") {
+            this.canvas.style.cursor = "pointer";
+        }else{
+            this.canvas.style.cursor = "inherit";
+        }
+    }
+    // 处理点击事件
+    dealMouseDown() {}
 }
