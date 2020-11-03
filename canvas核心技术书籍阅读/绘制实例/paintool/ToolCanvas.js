@@ -9,8 +9,8 @@ const GRID_COLOR = "rgb(0, 0, 200)"; // 网格颜色
 // 对象数组新增or编辑
 function iconListUpdate(arr, key, obj) {
     let existIndex = arr.findIndex((item) => item[key] === obj[key]);
-    if (typeof existIndex !== "undefined") {
-        arr.splice(existIndex, 1, obj);
+    if (typeof existIndex >= 0) {
+        Object.assign(arr[existIndex], obj);
     } else {
         arr.push(obj);
     }
@@ -34,6 +34,8 @@ export default class ToolCanvas {
         this.canvas = canvas;
         this.context = canvas.getContext("2d");
         this.context.strokeStyle = CONTENT_COLOR;
+        /* 鼠标当前移动到的icon图标及位置 */
+        this.curIcon = null;
         this.curLayerX = -1;
         this.curLayerY = -1;
         this.aIconList = [
@@ -48,7 +50,9 @@ export default class ToolCanvas {
             this.curLayerX = -1;
             this.curLayerY = -1;
         });
-        canvas.addEventListener("mousedown", this.dealMouseDown);
+        canvas.addEventListener("mousedown", (e) => {
+            this.dealMouseDown(e);
+        });
     }
     // 基础框
     baseRect(param, halfShadow) {
@@ -269,17 +273,27 @@ export default class ToolCanvas {
         this.curLayerY = e.layerY;
         let inIcon = this.aIconList.find((item) => {
             let xIn = e.layerX >= item.x && e.layerX <= item.x + item.w;
-            console.log(xIn);
             let yIn = e.layerY >= item.y && e.layerY <= item.y + item.h;
-            console.log(yIn);
             return xIn && yIn;
         });
         if (typeof inIcon !== "undefined") {
+            this.curIcon = inIcon;
             this.canvas.style.cursor = "pointer";
-        }else{
+        } else {
+            this.curIcon = null;
             this.canvas.style.cursor = "inherit";
         }
     }
     // 处理点击事件
-    dealMouseDown() {}
+    dealMouseDown(e) {
+        let curIcon = this.curIcon;
+        this.context.shadowOffsetX = 6;
+        this.context.shadowOffsetY = 6;
+        this.context.shadowColor = "rgba(0,0,0,1)";
+        this.context.shadowBlur = 4;
+        this.context.fillStyle = "rgba(0,0,0,0.5)"
+        /* clip 和 globalCompositeOperation两个属性有大用，在画重叠的图形的时候  */
+        this.context.globalCompositeOperation = "destination-over"
+        this.context.fillRect(curIcon.x, curIcon.y, curIcon.w, curIcon.h);
+    }
 }
