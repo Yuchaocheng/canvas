@@ -16,5 +16,5 @@ function drawToolCanvas(){
     tool.tailIcon();
     tool.eraserIcon();
 }
-
+// isPointInPath
 drawToolCanvas()

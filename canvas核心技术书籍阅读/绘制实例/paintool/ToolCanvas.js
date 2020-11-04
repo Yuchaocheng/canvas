@@ -5,6 +5,7 @@ const INIT_Y = 18;
 const CONTENT_COLOR = "#648CE6"; // 工具图形内容颜色
 const ITEM_OFFSET_Y = 12; // 工具图形间距
 const GRID_COLOR = "rgb(0, 0, 200)"; // 网格颜色
+const cannvasBG = "#eeeeef"; //canvas背景颜色
 
 // 对象数组新增or编辑
 function iconListUpdate(arr, key, obj) {
@@ -58,12 +59,12 @@ export default class ToolCanvas {
     baseRect(param, halfShadow) {
         let [x, y, w, h] = param;
         this.context.save();
-        this.context.shadowOffsetX = 1;
-        this.context.shadowOffsetY = 1;
-        this.context.shadowColor = "rgba(0,0,0,0.4)";
+        this.context.shadowOffsetX = 2;
+        this.context.shadowOffsetY = 2;
+        this.context.shadowColor = "rgba(0,0,0,0.2)";
         this.context.shadowBlur = 2;
         this.context.strokeStyle = "#a1b5e2";
-        this.context.fillStyle = "#eeeeef";
+        this.context.fillStyle = cannvasBG;
         this.context.strokeRect(...param);
         this.context.fillRect(...param);
         if (halfShadow) {
@@ -90,7 +91,7 @@ export default class ToolCanvas {
         this.context.moveTo(x + offset, y + offset);
         this.context.lineTo(x + WIDTH - offset, y + HEIGHT - offset);
         this.context.stroke();
-        iconListUpdate(this.aIconList, "type", { x, y, w: WIDTH, h: HEIGHT, type: "line" });
+        iconListUpdate(this.aIconList, "type", { x, y, w: WIDTH, h: HEIGHT, type: "line", order });
     }
     // 矩形
     rectIcon(insideOffset = 4, order = 1) {
@@ -286,14 +287,25 @@ export default class ToolCanvas {
     }
     // 处理点击事件
     dealMouseDown(e) {
+        this.aIconList.forEach((item) => {
+            item.selected = false;
+        });
+
+        this.curIcon.selected = true;
         let curIcon = this.curIcon;
+        this.context.save();
         this.context.shadowOffsetX = 6;
         this.context.shadowOffsetY = 6;
         this.context.shadowColor = "rgba(0,0,0,1)";
         this.context.shadowBlur = 4;
-        this.context.fillStyle = "rgba(0,0,0,0.5)"
-        /* clip 和 globalCompositeOperation两个属性有大用，在画重叠的图形的时候  */
-        this.context.globalCompositeOperation = "destination-over"
+        this.context.fillStyle = "rgba(0,0,0,0.5)";
+        /* clip 和 globalCompositeOperation两个属性有大用，在画重叠的图形的时候，否则只有重绘了  */
+        this.context.globalCompositeOperation = "destination-over"; // destination-over 现有画布内容后面绘制新图形，一般来说新画的图形覆盖已有图形，这个属性就把这一点调换了
         this.context.fillRect(curIcon.x, curIcon.y, curIcon.w, curIcon.h);
+        this.context.restore();
+        setTimeout(() => {
+            /* 从这里可以看出来，cavans的盒子的宽高是不包括border的 */
+            this.context.clearRect(curIcon.x - 1, curIcon.y - 1, curIcon.w + 10 + 1, curIcon.h + 10 + 1);
+        }, 2000);
     }
 }
