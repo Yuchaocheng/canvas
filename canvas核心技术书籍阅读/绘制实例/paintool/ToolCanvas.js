@@ -5,7 +5,7 @@ const INIT_Y = 18;
 const CONTENT_COLOR = "#648CE6"; // 工具图形内容颜色
 const ITEM_OFFSET_Y = 12; // 工具图形间距
 const GRID_COLOR = "rgb(0, 0, 200)"; // 网格颜色
-const CannvasBG = "#eeeeef"; //canvas背景颜色
+const IconBG = "#eeeeee"; //canvas背景颜色
 const [clickShadowX, clickShadowY, clickShadowBlur] = [6, 6, 4];
 
 // 对象数组新增or编辑
@@ -38,6 +38,7 @@ export default class ToolCanvas {
         this.context.strokeStyle = CONTENT_COLOR;
         // 左侧菜单栏默认顺序，可更改
         this.DefaultOrder = ["line", "rect", "circle", "openLine", "closeLine", "curve", "font", "tail", "eraser"];
+        this.shadowTypeList = ["rect", "circle", "closeLine", "curve", "font", "tail"]
         /* 鼠标当前移动到的icon图标及位置 */
         this.curIcon = null;
         this.curLayerX = -1;
@@ -82,7 +83,8 @@ export default class ToolCanvas {
         typeof order !== "number" && (order = typeIndex);
         let x = INIT_X;
         let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
-        this.baseRect([x, y, WIDTH, HEIGHT]);
+        let hasShadow = this.shadowTypeList.includes(type)
+        this.baseRect([x, y, WIDTH, HEIGHT],hasShadow);
         this[type].apply(this, [x, y, ...params]);
         iconListUpdate(this.aIconList, "type", { x, y, w: WIDTH, h: HEIGHT, type, params });
     }
@@ -95,7 +97,7 @@ export default class ToolCanvas {
         this.context.shadowColor = "rgba(0,0,0,0.2)";
         this.context.shadowBlur = 2;
         this.context.strokeStyle = "#a1b5e2";
-        this.context.fillStyle = CannvasBG;
+        this.context.fillStyle = IconBG;
         this.context.strokeRect(...param);
         this.context.fillRect(...param);
         if (halfShadow) {
