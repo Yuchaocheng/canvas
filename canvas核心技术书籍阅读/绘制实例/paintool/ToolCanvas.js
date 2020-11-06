@@ -7,8 +7,6 @@ const ITEM_OFFSET_Y = 12; // 工具图形间距
 const GRID_COLOR = "rgb(0, 0, 200)"; // 网格颜色
 const CannvasBG = "#eeeeef"; //canvas背景颜色
 const [clickShadowX, clickShadowY, clickShadowBlur] = [6, 6, 4];
-// 左侧菜单栏默认顺序，可更改
-const DefaultOrder = ["line", "rect", "circle", "openLine", "closeLine", "curve", "font", "tail", "eraser"];
 
 // 对象数组新增or编辑
 function iconListUpdate(arr, key, obj) {
@@ -38,6 +36,8 @@ export default class ToolCanvas {
         this.canvas = canvas;
         this.context = canvas.getContext("2d");
         this.context.strokeStyle = CONTENT_COLOR;
+        // 左侧菜单栏默认顺序，可更改
+        this.DefaultOrder = ["line", "rect", "circle", "openLine", "closeLine", "curve", "font", "tail", "eraser"];
         /* 鼠标当前移动到的icon图标及位置 */
         this.curIcon = null;
         this.curLayerX = -1;
@@ -58,7 +58,12 @@ export default class ToolCanvas {
             this.dealMouseDown(e);
         });
     }
-
+    // 初始化，绘制全部左侧icon图标
+    init() {
+        this.DefaultOrder.forEach((item) => {
+            this.drawIcon(item);
+        });
+    }
     /**
      * 绘制左侧工具图形
      * @param type {String} - 工具图标的类型
@@ -66,19 +71,20 @@ export default class ToolCanvas {
      * @param params {params} - [params = []] 绘制具体工具图标可传参数
      */
     drawIcon(type, order, params = []) {
-        if (!DefaultOrder.includes(type)) {
+        let typeIndex = this.DefaultOrder.indexOf(type);
+        if (typeIndex === -1) {
             throw new Error("icon类型非法");
         }
 
         if (!Array.isArray(params)) {
             throw new Error("第二个参数必须为数组");
         }
-        typeof order !== "number" && (order = DefaultOrder[type]);
+        typeof order !== "number" && (order = typeIndex);
         let x = INIT_X;
-        let y = INIT_Y + order * ITEM_OFFSET_Y;
-        this.baseRect([INIT_X, INIT_Y, WIDTH, HEIGHT]);
+        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
+        this.baseRect([x, y, WIDTH, HEIGHT]);
         this[type].apply(this, [x, y, ...params]);
-        iconListUpdate(this.aIconList, "type", { x, y, w: WIDTH, h: HEIGHT, type, params, drawFun: this[type] });
+        iconListUpdate(this.aIconList, "type", { x, y, w: WIDTH, h: HEIGHT, type, params });
     }
     // 基础框
     baseRect(param, halfShadow) {
@@ -114,21 +120,14 @@ export default class ToolCanvas {
         this.context.stroke();
     }
     // 矩形
-    rect(order = 1, insideOffset = 4) {
-        let x = INIT_X;
-        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
-        this.baseRect([x, y, WIDTH, HEIGHT], true);
+    rect(x, y, insideOffset = 4) {
         this.context.beginPath();
         let offset = insideOffset + 0.5;
         this.context.strokeRect(x + offset, y + offset, WIDTH - 2 * offset, HEIGHT - 2 * offset);
         this.context.stroke();
-        iconListUpdate(this.aIconList, "type", { x, y, w: WIDTH, h: HEIGHT, type: "rect", order, drawFun: this.rectIcon });
     }
     // 圆
-    circle(order = 2, r = 20) {
-        let x = INIT_X;
-        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
-        this.baseRect([x, y, WIDTH, HEIGHT], true);
+    circle(x, y, r = 20) {
         this.context.beginPath();
         this.context.save();
         let offsetX = x + WIDTH / 2;
@@ -137,23 +136,16 @@ export default class ToolCanvas {
         this.context.arc(0, 0, r, 0, Math.PI * 2);
         this.context.stroke();
         this.context.restore();
-        iconListUpdate(this.aIconList, "type", { x, y, w: WIDTH, h: HEIGHT, type: "rect", order, drawFun: this.rectIcon });
     }
 
     // 开口线，借鉴例子中的图案，关系不大
-    openLine(order = 3) {
-        let x = INIT_X;
-        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
-        this.baseRect([x, y, WIDTH, HEIGHT]);
+    openLine(x, y) {
         this.context.beginPath();
         this.drawOpenPathIconLines(x, y);
         this.context.stroke();
     }
     // 闭合线
-    closeLine(order = 4) {
-        let x = INIT_X;
-        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
-        this.baseRect([x, y, WIDTH, HEIGHT], true);
+    closeLine(x, y) {
         this.context.beginPath();
         this.drawOpenPathIconLines(x, y);
         this.context.closePath();
@@ -182,10 +174,7 @@ export default class ToolCanvas {
     }
 
     // 曲线
-    curve(order = 5) {
-        let x = INIT_X;
-        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
-        this.baseRect([x, y, WIDTH, HEIGHT], true);
+    curve(x, y) {
         this.context.save();
         this.context.translate(x, y);
         this.context.beginPath();
@@ -195,10 +184,7 @@ export default class ToolCanvas {
         this.context.restore();
     }
     // 文字 （直接用文字绘制就行，不需要用线描出来）
-    font(order = 6) {
-        let x = INIT_X;
-        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
-        this.baseRect([x, y, WIDTH, HEIGHT], true);
+    font(x, y) {
         this.context.save();
         this.context.translate(x, y);
         this.context.beginPath();
@@ -213,10 +199,7 @@ export default class ToolCanvas {
         this.context.restore();
     }
     // 尾随效果
-    tail(order = 7) {
-        let x = INIT_X;
-        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
-        this.baseRect([x, y, WIDTH, HEIGHT], true);
+    tail(x, y) {
         this.context.save();
         this.context.translate(x, y);
         this.context.strokeStyle = "rgba(100, 140, 230, 0.6)";
@@ -237,10 +220,7 @@ export default class ToolCanvas {
         this.context.restore();
     }
     // 橡皮擦
-    eraser(order = 8) {
-        let x = INIT_X;
-        let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
-        this.baseRect([x, y, WIDTH, HEIGHT]);
+    eraser(x, y) {
         this.context.save();
         this.context.translate(x, y);
         let offsetX = WIDTH / 2;
@@ -251,7 +231,7 @@ export default class ToolCanvas {
         this.context.stroke();
         /* clip()裁剪后不能访问裁剪区域的其他区域（只能渲染在裁剪区域）。clip()能限定显示区域 */
         this.context.clip();
-        this.gridIcon(0, 0, WIDTH, HEIGHT, 4);
+        this.grid(0, 0, WIDTH, HEIGHT, 4);
         this.context.restore();
     }
 
@@ -309,6 +289,10 @@ export default class ToolCanvas {
     }
     // 处理点击事件
     dealMouseDown(e) {
+        if (!this.curIcon) {
+            // 点击到空白区域
+            return;
+        }
         this.aIconList.forEach((item) => {
             if (item.selected) {
                 /* 1是border的宽度 */
@@ -318,7 +302,8 @@ export default class ToolCanvas {
                     item.w + clickShadowX + clickShadowBlur + 1,
                     item.h + clickShadowY + clickShadowBlur + 1
                 );
-                item.drawFun.apply(this, [item.order]);
+                // item.drawFun.apply(this, [item.order]);
+                this.drawIcon(item.type);
             }
             item.selected = false;
         });
