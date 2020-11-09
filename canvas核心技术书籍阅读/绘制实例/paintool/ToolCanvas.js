@@ -246,18 +246,14 @@ export default class ToolCanvas {
         this.context.lineWidth = 0.5;
         this.context.fillRect(x, y, w, h);
         this.context.globalAlpha = 0.1;
-        let currentX = 0;
-        let currentY = 0;
+        this.context.translate(x,y)
         this.context.beginPath();
-        while (currentX < w) {
-            this.context.moveTo(currentX, 0);
-            this.context.lineTo(currentX, h);
-            currentX += gridGap + 0.5;
-        }
-        while (currentY < h) {
-            this.context.moveTo(0, currentY);
-            this.context.lineTo(w, currentY);
-            currentY += gridGap + 0.5;
+        /* 横向纵向间隔相等 */
+        for (let i = gridGap + 0.5; i < w; i += gridGap) {
+          this.context.moveTo(i,0)
+          this.context.lineTo(i, h);
+          this.context.moveTo(0,i)
+          this.context.lineTo(w,i)
         }
         this.context.stroke();
         this.context.restore();

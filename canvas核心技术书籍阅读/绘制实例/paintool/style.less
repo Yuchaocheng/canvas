@@ -1,3 +1,7 @@
+*{
+    margin: 0;
+    padding: 0;
+}
 body {
     margin: 0;
     padding: 0;
@@ -24,12 +28,18 @@ body {
 .main {
     display: flex;
 
-    .left {
+    .left,
+    .right {
         margin-left: 20px;
         background: #eeeeef;
         border: thin solid #aaaaaa;
         border-radius: 8px;
-        /* 3个值的时候代表x、y便宜加shadow颜色，四个值的时候就会加上模糊度 */
-        box-shadow:  4px 4px 8px rgba(0, 0, 0, 0.5);
+        /* 3个值的时候代表x、y偏移加shadow颜色，四个值的时候就会加上模糊度 */
+        box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
+    }
+    .right{
+        background: #ffffff;
+        border-radius: 12px;
+        cursor: crosshair;
     }
 }
