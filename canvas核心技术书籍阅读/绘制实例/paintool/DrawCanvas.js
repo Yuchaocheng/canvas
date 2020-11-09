@@ -27,14 +27,3 @@ export default class DrawCanvas {
         this.context.stroke();
     }
 }
-
-let obj = {
-    a: 1,
-    b: 2,
-    get a() {
-        return this.a;
-    },
-    set a(value) {
-        this.b += value;
-    },
-};
