@@ -38,7 +38,7 @@ export default class ToolCanvas {
         this.context.strokeStyle = CONTENT_COLOR;
         // 左侧菜单栏默认顺序，可更改
         this.DefaultOrder = ["line", "rect", "circle", "openLine", "closeLine", "curve", "font", "tail", "eraser"];
-        this.shadowTypeList = ["rect", "circle", "closeLine", "curve", "font", "tail"]
+        this.shadowTypeList = ["rect", "circle", "closeLine", "curve", "font", "tail"];
         /* 鼠标当前移动到的icon图标及位置 */
         this.curIcon = null;
         this.curLayerX = -1;
@@ -46,21 +46,20 @@ export default class ToolCanvas {
         this.aIconList = [
             // {type:"line",x:0,y:0,w:0,h:0}
         ]; //记录没个icon的位置，否则没法制作点击事件
-
-        /* 增加事件监听 */
-        canvas.addEventListener("mousemove", (e) => {
-            this.dealMouseMove(e);
-        });
-        canvas.addEventListener("mouseout", () => {
-            this.curLayerX = -1;
-            this.curLayerY = -1;
-        });
-        canvas.addEventListener("mousedown", (e) => {
-            this.dealMouseDown(e);
-        });
     }
     // 初始化，绘制全部左侧icon图标
     init() {
+        /* 增加事件监听 */
+        this.canvas.addEventListener("mousemove", (e) => {
+            this.dealMouseMove(e);
+        });
+        this.canvas.addEventListener("mouseout", () => {
+            this.curLayerX = -1;
+            this.curLayerY = -1;
+        });
+        this.canvas.addEventListener("mousedown", (e) => {
+            this.dealMouseDown(e);
+        });
         this.DefaultOrder.forEach((item) => {
             this.drawIcon(item);
         });
@@ -83,8 +82,8 @@ export default class ToolCanvas {
         typeof order !== "number" && (order = typeIndex);
         let x = INIT_X;
         let y = INIT_Y + order * (HEIGHT + ITEM_OFFSET_Y);
-        let hasShadow = this.shadowTypeList.includes(type)
-        this.baseRect([x, y, WIDTH, HEIGHT],hasShadow);
+        let hasShadow = this.shadowTypeList.includes(type);
+        this.baseRect([x, y, WIDTH, HEIGHT], hasShadow);
         this[type].apply(this, [x, y, ...params]);
         iconListUpdate(this.aIconList, "type", { x, y, w: WIDTH, h: HEIGHT, type, params });
     }
@@ -246,24 +245,24 @@ export default class ToolCanvas {
         this.context.lineWidth = 0.5;
         this.context.fillRect(x, y, w, h);
         this.context.globalAlpha = 0.1;
-        this.context.translate(x,y)
+        this.context.translate(x, y);
         this.context.beginPath();
         /* 横向纵向间隔相等 */
         for (let i = gridGap + 0.5; i < w; i += gridGap) {
-          this.context.moveTo(i,0)
-          this.context.lineTo(i, h);
-          this.context.moveTo(0,i)
-          this.context.lineTo(w,i)
+            this.context.moveTo(i, 0);
+            this.context.lineTo(i, h);
+            this.context.moveTo(0, i);
+            this.context.lineTo(w, i);
         }
         this.context.stroke();
         this.context.restore();
     }
 
-    // 备份当前画布
+    // 备份当前画布（用ImageData对象保存好过用新建一个canvas对象保存 ）
     backupCanvas() {
         // 清空画布
         /* 创建的dom元素如果没被append到html中，那么就和其他变量一样，随GC回收 */
-        let backupCanvas = document.getElementById("canvas");
+        let backupCanvas = document.createElement("canvas");
         let backupCtx = backupCanvas.getContext("2d");
         backupCtx.drawImage(this.canvas, this.canvas.width, this.canvas.height);
         return backupCanvas;
@@ -286,7 +285,7 @@ export default class ToolCanvas {
         }
     }
     // 处理点击事件
-    dealMouseDown(e) {
+    dealMouseDown() {
         if (!this.curIcon) {
             // 点击到空白区域
             return;

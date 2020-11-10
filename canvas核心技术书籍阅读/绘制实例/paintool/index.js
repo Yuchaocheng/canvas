@@ -12,5 +12,11 @@ let drawCanvas = new DrawCanvas(drawCanvasDom);
 // tool.DefaultOrder = tool.DefaultOrder.reverse() //反序
 toolCanvas.init();
 
-drawCanvas.line(101,101,100,400)
 
+drawCanvasDom.addEventListener("mousedown", drawCanvasMousedown);
+drawCanvas.line(203,100,203,400);
+
+//处理画布鼠标点击事件
+function drawCanvasMousedown(e){
+    
+}
