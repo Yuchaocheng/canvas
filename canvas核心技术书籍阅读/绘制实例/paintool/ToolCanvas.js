@@ -41,6 +41,7 @@ export default class ToolCanvas {
         this.shadowTypeList = ["rect", "circle", "closeLine", "curve", "font", "tail"];
         /* 鼠标当前移动到的icon图标及位置 */
         this.curIcon = null;
+        this.selectedIcon = "";
         this.curLayerX = -1;
         this.curLayerY = -1;
         this.aIconList = [
@@ -63,6 +64,10 @@ export default class ToolCanvas {
         this.DefaultOrder.forEach((item) => {
             this.drawIcon(item);
         });
+        // 默认选中第一个图形
+        this.curIcon = this.aIconList[0];
+        this.dealMouseDown();
+        this.curIcon = null;
     }
     /**
      * 绘制左侧工具图形
@@ -307,6 +312,7 @@ export default class ToolCanvas {
 
         this.curIcon.selected = true;
         let curIcon = this.curIcon;
+        this.selectedIcon = curIcon.type;
         this.context.save();
         this.context.shadowOffsetX = clickShadowX;
         this.context.shadowOffsetY = clickShadowY;

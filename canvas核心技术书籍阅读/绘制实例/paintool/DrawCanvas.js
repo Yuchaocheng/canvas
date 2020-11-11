@@ -11,7 +11,6 @@ export default class DrawCanvas {
         this.tool = new ToolCanvas(canvas);
         this.tool.grid(0, 0, this.canvas.width, this.canvas.height, 10);
         this.#ImageData = null;
-        
     }
     /* 方便调用属性 */
     get strokeColor() {
@@ -26,11 +25,19 @@ export default class DrawCanvas {
     restoreCanvas() {
         this.context.putImageData(this.#ImageData, 0, 0);
     }
+    // 总的绘制方法入口
+    draw(type, params) {
+        this[type].apply(this, params);
+    }
     // 画直线(半像素问题，如果是水平或垂直线，在lineWidth是基数时会出现，原因就是画的线是以起始坐标为中心，向两端扩张造成)
     line(x1, y1, x2, y2) {
         this.context.beginPath();
         this.context.moveTo(x1, y1);
         this.context.lineTo(x2, y2);
         this.context.stroke();
+    }
+    rect(x1, y1, x2, y2) {
+        this.context.beginPath();
+        this.context.strokeRect(x1, y1, x2 - x1, y2 - y1);
     }
 }
