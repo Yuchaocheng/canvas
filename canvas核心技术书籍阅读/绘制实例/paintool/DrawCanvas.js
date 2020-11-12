@@ -6,8 +6,8 @@ export default class DrawCanvas {
     constructor(canvas) {
         this.canvas = canvas;
         this.context = canvas.getContext("2d");
-        // 默认线条颜色
-        this.context.strokeStyle = "cornflowerblue";
+        this.context.strokeStyle = "cornflowerblue";        // 默认线条颜色
+        this.context.fillStyle = "rgba(253, 203, 110,0.6)"; // 默认填充颜色
         this.tool = new ToolCanvas(canvas);
         this.tool.grid(0, 0, this.canvas.width, this.canvas.height, 10);
         this.#ImageData = null;
@@ -18,6 +18,12 @@ export default class DrawCanvas {
     }
     set strokeColor(value) {
         this.context.strokeStyle = value;
+    }
+    get fillColor() {
+        return this.context.strokeStyle;
+    }
+    set fillColor(value) {
+        this.context.fillStyle = value;
     }
     saveImageData() {
         this.#ImageData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
@@ -36,8 +42,11 @@ export default class DrawCanvas {
         this.context.lineTo(x2, y2);
         this.context.stroke();
     }
-    rect(x1, y1, x2, y2) {
+    rect(x1, y1, x2, y2, isFill) {
         this.context.beginPath();
         this.context.strokeRect(x1, y1, x2 - x1, y2 - y1);
+        if (isFill) {
+            this.context.fillRect(x1, y1, x2 - x1, y2 - y1);
+        }
     }
 }
