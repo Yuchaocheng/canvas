@@ -47,6 +47,8 @@ export default class ToolCanvas {
         this.aIconList = [
             // {type:"line",x:0,y:0,w:0,h:0}
         ]; //记录没个icon的位置，否则没法制作点击事件
+        // icon图标改变的回调，实例对象可自行定义方法
+        this.changeIcon = null;
     }
     // 初始化，绘制全部左侧icon图标
     init() {
@@ -295,8 +297,10 @@ export default class ToolCanvas {
             // 点击到空白区域
             return;
         }
+        let oldIconType = "";
         this.aIconList.forEach((item) => {
             if (item.selected) {
+                oldIconType = item.type
                 /* 1是border的宽度 */
                 this.context.clearRect(
                     item.x - 1,
@@ -313,6 +317,9 @@ export default class ToolCanvas {
         this.curIcon.selected = true;
         let curIcon = this.curIcon;
         this.selectedIcon = curIcon.type;
+        if (oldIconType !== curIcon.type && typeof this.changeIcon === "function") {
+            this.changeIcon(curIcon.type, oldIconType);
+        }
         this.context.save();
         this.context.shadowOffsetX = clickShadowX;
         this.context.shadowOffsetY = clickShadowY;
