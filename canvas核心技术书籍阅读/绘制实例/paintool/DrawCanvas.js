@@ -1,8 +1,10 @@
 import ToolCanvas from "./ToolCanvas.js";
+const CANVASBG = "#ffffff"; //canvas默认背景
 const DRAWINGCOLOR = "green"; //鼠标移动过程中线条的颜色
 const CURVEBALLR = 20; // 贝塞尔曲线图的小球半径
 const FONTSTYLE = "48px Palatino"; //字体样式
-const CURSORTIME = 1000; //光标闪烁一次的时间
+const CURSORTIME = 1000; //光标闪烁一次的时间(暂时不知道怎么实现)
+const FONTLINEGAP = 8; //字体换行之间的间隙大小
 
 export default class DrawCanvas {
     #ImageData;
@@ -13,7 +15,6 @@ export default class DrawCanvas {
         this.context.fillStyle = "rgba(253, 203, 110,0.6)"; // 默认填充颜色
         this.context.font = FONTSTYLE; //默认字体样式
         /* 使字体位于单位中心 */
-        this.context.textAlign = "center"; //默认start
         this.context.textBaseline = "middle"; //默认alphabetic
         this.tool = new ToolCanvas(canvas);
         this.tool.grid(0, 0, this.canvas.width, this.canvas.height, 10);
@@ -151,29 +152,64 @@ export default class DrawCanvas {
         this.context.arc(circleParams.rx, circleParams.ry, circleParams.r, 0, Math.PI * 2);
         return this.context.isPointInPath(px, py);
     }
-    font(x, y) {
-        // 先执行一遍，就不用等一秒才出来效果
-        this.fontCursor(x, y);
-        setInterval(() => {
+    /* 只能输入英文，web上目前好像只有input框能实现其他语言的输入，如果一定要输入其他语言，需要做透明input模拟
+       因为这里主要是学习canvas用法，就不做其他语言的扩展了。isDone是否绘制完成 。
+    */
+    font(x, y, textArr, isDone) {
+        if (this.currentFont) {
+            //键盘事件
+            let content = textArr.join("");
+            this.restoreCanvas();
+            this.context.strokeText(content, this.currentFont.x, this.currentFont.y);
+            this.context.fillText(content, this.currentFont.x, this.currentFont.y);
+            let textSize = this.context.measureText(content);
+            if (!isDone) {
+                let cursorX = this.currentFont.x + textSize.width + 4; //4像素是流出来的空隙
+                this.fontCursor(cursorX, this.currentFont.y);
+            } else {
+                let newX = x;
+                let newY = y;
+                if (typeof x !== "number") {
+                    //按下了回车键
+                    newX = this.currentFont.x;
+                    newY = this.currentFont.y + this.currentFont.fontSize + FONTLINEGAP;
+                }
+                //一次font绘制结束
+                this.saveImageData();
+                this.currentFont = null;
+                this.font(newX, newY);
+            }
+        } else {
+            //鼠标点击事件
+            // 先执行一遍，就不用等一秒才出来效果
+            this.currentFont = {
+                x,
+                y,
+            };
             this.fontCursor(x, y);
-        }, CURSORTIME);
+        }
     }
     // 鼠标光标
     fontCursor(x, y) {
-        let temImgData = this.saveImageData(true);
         const CursorWidth = 1;
         let aMatch = this.context.font.match(/(\d+)px/);
-        let fontSize = 48;
+        let fontSize = 48; //默认值
         if (aMatch) {
             fontSize = +aMatch[1];
         }
+        this.currentFont.fontSize = fontSize;
         // 不必知道前面的样式，就可以用save还原回去
         this.context.save();
         this.context.fillStyle = "#1e90ff";
         this.context.fillRect(x, y - fontSize / 2, CursorWidth, fontSize);
         this.context.restore();
-        setTimeout(() => {
-            this.restoreCanvas(temImgData);
-        }, CURSORTIME / 2);
+        /* 光标闪烁目前看好像没办法完成，闪烁本身是简单的，但是会影响其他图形，因为半秒内也有可能画了其他图形 */
+        // setTimeout(() => {
+        //     this.context.save();
+        //     this.context.fillStyle = "white";
+        //     this.context.fillRect(x, y - fontSize / 2, CursorWidth, fontSize);
+        //     this.context.fillRect(0,0,200,200);
+        //     this.context.restore();
+        // }, CURSORTIME / 2);
     }
 }

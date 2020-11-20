@@ -16,7 +16,8 @@ let mouseEvent = {
 
 let aBaseLineTypes = ["line", "rect", "circle"]; //基本类型
 let aPathType = ["openLine", "closeLine"]; //路径类型
-let pathArr = [];
+let pathArr = []; //路径数据存储
+let fontArr = []; //文字存储
 
 const toolCanvasDom = document.getElementById("toolCanvas");
 const drawCanvasDom = document.getElementById("drawCanvas");
@@ -35,6 +36,12 @@ toolCanvas.changeIcon = function (value, oldValue) {
         drawCanvas.restoreCanvas();
         drawCanvas.currentCurve = null;
     }
+    if (value === "font") {
+        drawCanvasDom.style.cursor = "text";
+        drawCanvas.currentFont = null;
+    } else {
+        drawCanvasDom.style.cursor = DEFAULTCURSOR;
+    }
 };
 
 /* 画布事件监听 */
@@ -42,14 +49,22 @@ drawCanvasDom.addEventListener("mousedown", drawCanvasMouseDown);
 drawCanvasDom.addEventListener("mouseup", drawCanvasMouseUp);
 drawCanvasDom.addEventListener("mousemove", drawCanvasMouseMove);
 document.addEventListener("mouseup", documentMouseUp);
+/* keypress按下有值的键时触发（Ctrl、Alt、Shift、Meta 这些键不触发） 如果用户一直按键不松开，就会连续触发键盘事件 */
+document.addEventListener("keypress", documentKeypress);
+/* 加这个keydown是用来监听backpace删除键的。
+而keypress只监听有值的按键，整好符合这里的需求，自己判断的话比较困难，所以采用两个监听 */
+document.addEventListener("keydown", documentKeydown);
 
 //处理画布鼠标点击事件
 function drawCanvasMouseDown(e) {
-    mouseEvent.isMouseDown = true;
     // 画曲线拖动小球时不存储当前画布
-    if (!(toolCanvas.selectedIcon === "curve" && drawCanvas.currentCurve)) {
+    let isMoveingBall = toolCanvas.selectedIcon === "curve" && drawCanvas.currentCurve;
+    // 画文字切换到下一个位置时不存储画布。因为还要重绘一遍。删除光标。
+    let isFontDone = toolCanvas.selectedIcon === "font" && drawCanvas.currentFont;
+    if (!(isMoveingBall || isFontDone)) {
         drawCanvas.saveImageData();
     }
+    mouseEvent.isMouseDown = true;
     drawCanvas.strokeColor = DRAWINGCOLOR;
     mouseEvent.mouseDownX = e.layerX;
     mouseEvent.mouseDownY = e.layerY;
@@ -67,7 +82,9 @@ function drawCanvasMouseDown(e) {
         }
     }
     if (toolCanvas.selectedIcon === "font") {
-        drawCanvas.draw("font", [e.layerX, e.layerY]);
+        let isDone = !!drawCanvas.currentFont;
+        drawCanvas.draw("font", [e.layerX, e.layerY, fontArr, isDone]);
+        isDone && (fontArr.length = 0); //判断当前是否有正在编辑的文字
     }
 }
 
@@ -77,6 +94,7 @@ function drawCanvasMouseUp(e) {
         return;
     }
     if (!toolCanvas.selectedIcon || toolCanvas.selectedIcon === "font") {
+        mouseEvent.isMouseDown = false;
         return;
     }
     drawCanvas.strokeColor = strokeColor;
@@ -144,4 +162,32 @@ function drawCanvasMouseMove(e) {
         }
     }
     mouseEvent.latestEvent = e;
+}
+
+// 键盘事件，用于文字输入
+function documentKeypress(e) {
+    if (toolCanvas.selectedIcon !== "font") {
+        return;
+    }
+
+    if (e.keyCode === 13) {
+        // 回车键回车，光标位置移动到下一格，fontArr清空
+        drawCanvas.draw("font", ["", "", fontArr, true]); //第三个参数为是否换行
+        fontArr.length = 0;
+        return;
+    }
+    fontArr.push(e.key);
+    drawCanvas.draw("font", ["", "", fontArr]);
+}
+// 键盘事件，用于文字输入
+function documentKeydown(e) {
+    console.log(e, 11);
+    if (toolCanvas.selectedIcon !== "font") {
+        return;
+    }
+    if (e.keyCode === 8) {
+        //回车键
+        fontArr.pop();
+        drawCanvas.draw("font", ["", "", fontArr]);
+    }
 }
