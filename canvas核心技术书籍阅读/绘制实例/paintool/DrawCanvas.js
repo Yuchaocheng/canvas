@@ -5,6 +5,7 @@ const CURVEBALLR = 20; // 贝塞尔曲线图的小球半径
 const FONTSTYLE = "48px Palatino"; //字体样式
 const CURSORTIME = 1000; //光标闪烁一次的时间(暂时不知道怎么实现)
 const FONTLINEGAP = 8; //字体换行之间的间隙大小
+const TAILR = 50; // 尾随效果圆半径
 
 export default class DrawCanvas {
     #ImageData;
@@ -211,5 +212,18 @@ export default class DrawCanvas {
         //     this.context.fillRect(0,0,200,200);
         //     this.context.restore();
         // }, CURSORTIME / 2);
+    }
+    // 尾随效果
+    tail(path) {
+        this.context.beginPath();
+        this.context.save();
+        this.context.globalAlpha = 0.4;
+        path.forEach((item) => {
+            let [x, y] = item;
+            this.context.moveTo(x + TAILR, y); //arc的起笔是在圆的(0,r)位置
+            this.context.arc(...item, TAILR, 0, Math.PI * 2);
+        });
+        this.context.stroke();
+        this.context.restore();
     }
 }

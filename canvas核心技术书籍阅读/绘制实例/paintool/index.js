@@ -15,7 +15,7 @@ let mouseEvent = {
 };
 
 let aBaseLineTypes = ["line", "rect", "circle"]; //基本类型
-let aPathType = ["openLine", "closeLine"]; //路径类型
+let aPathType = ["openLine", "closeLine","tail"]; //路径类型
 let pathArr = []; //路径数据存储
 let fontArr = []; //文字存储
 
@@ -41,6 +41,11 @@ toolCanvas.changeIcon = function (value, oldValue) {
         drawCanvas.currentFont = null;
     } else {
         drawCanvasDom.style.cursor = DEFAULTCURSOR;
+        // 如果从font改到其他类型，并且当前font绘制到一半，需要完成绘制(即去光标)
+        if (oldValue === "font" && drawCanvas.currentFont) {
+            drawCanvas.draw("font", [drawCanvas.currentFont.x, drawCanvas.currentFont.y, fontArr, true]);
+            fontArr.length = 0;
+        }
     }
 };
 
@@ -103,7 +108,8 @@ function drawCanvasMouseUp(e) {
         drawCanvas.draw(toolCanvas.selectedIcon, [mouseEvent.mouseDownX, mouseEvent.mouseDownY, e.layerX, e.layerY, true]);
     } else if (aPathType.includes(toolCanvas.selectedIcon)) {
         let needFill = toolCanvas.selectedIcon === "closeLine";
-        drawCanvas.draw("linePath", [pathArr, needFill]);
+        let type = toolCanvas.selectedIcon === "tail"?"tail":"linePath"
+        drawCanvas.draw(type, [pathArr, needFill]);
         pathArr.length = 0;
     } else if (toolCanvas.selectedIcon === "curve") {
         if (drawCanvas.currentCurve && drawCanvas.currentCurve.step === "ballMove") {
@@ -129,6 +135,7 @@ function documentMouseUp() {
 //处理画布鼠标移动事件
 function drawCanvasMouseMove(e) {
     let inCircle = false;
+    // 画曲线图出来小球后，若移动到小球区域内，需要改变鼠标样式
     if (toolCanvas.selectedIcon === "curve" && drawCanvas.currentCurve) {
         inCircle = drawCanvas.judgeInCircle(e.layerX, e.layerY);
         if (inCircle) {
@@ -141,6 +148,7 @@ function drawCanvasMouseMove(e) {
         return;
     }
     if (!toolCanvas.selectedIcon || toolCanvas.selectedIcon === "font") {
+        // font类型没有鼠标移动事件，是由键盘事件控制
         return;
     }
     drawCanvas.restoreCanvas();
@@ -153,7 +161,8 @@ function drawCanvasMouseMove(e) {
         drawCanvas.draw(toolCanvas.selectedIcon, [mouseEvent.mouseDownX, mouseEvent.mouseDownY, e.layerX, e.layerY]);
     } else if (aPathType.includes(toolCanvas.selectedIcon)) {
         pathArr.push([e.layerX, e.layerY]);
-        drawCanvas.draw("linePath", [pathArr]);
+        let type = toolCanvas.selectedIcon === "tail"?"tail":"linePath"
+        drawCanvas.draw(type, [pathArr]);
     } else if (toolCanvas.selectedIcon === "curve") {
         if (drawCanvas.currentCurve && drawCanvas.currentCurve.step === "ballMove") {
             drawCanvas.draw("curve", ["ballMove", e.layerX, e.layerY]);
