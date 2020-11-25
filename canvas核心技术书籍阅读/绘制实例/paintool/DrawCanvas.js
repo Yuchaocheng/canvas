@@ -5,7 +5,13 @@ const CURVEBALLR = 20; // 贝塞尔曲线图的小球半径
 const FONTSTYLE = "48px Palatino"; //字体样式
 const CURSORTIME = 1000; //光标闪烁一次的时间(暂时不知道怎么实现)
 const FONTLINEGAP = 8; //字体换行之间的间隙大小
-const TAILR = 50; // 尾随效果圆半径
+const TAILR = 40; // 尾随效果圆半径，橡皮擦也用这个
+/* 橡皮擦样式 */
+const ERASER_LINE_WIDTH = 1; // 橡皮擦的半径必须要加上橡皮擦border的宽度，否则clip清除不了边
+const ERASER_SHADOW_STYLE = "blue";
+const ERASER_STROKE_STYLE = "rgba(0,0,255,0.6)";
+const ERASER_SHADOW_OFFSET = -5;
+const ERASER_SHADOW_BLUR = 20;
 
 export default class DrawCanvas {
     #ImageData;
@@ -22,6 +28,7 @@ export default class DrawCanvas {
         this.currentCurve = null;
         this.#ImageData = null;
         this.currentFont = null;
+        this.lastEraser = null;
     }
     /* 方便调用属性 */
     get strokeColor() {
@@ -181,12 +188,7 @@ export default class DrawCanvas {
                 this.font(newX, newY);
             }
         } else {
-            //鼠标点击事件
-            // 先执行一遍，就不用等一秒才出来效果
-            this.currentFont = {
-                x,
-                y,
-            };
+            this.currentFont = { x, y };
             this.fontCursor(x, y);
         }
     }
@@ -215,15 +217,58 @@ export default class DrawCanvas {
     }
     // 尾随效果
     tail(path) {
+        // 尾随效果是不重新绘制的，所以每次都取最后一个点
         this.context.beginPath();
         this.context.save();
-        this.context.globalAlpha = 0.4;
-        path.forEach((item) => {
-            let [x, y] = item;
-            this.context.moveTo(x + TAILR, y); //arc的起笔是在圆的(0,r)位置
-            this.context.arc(...item, TAILR, 0, Math.PI * 2);
-        });
+        let [x, y] = path[path.length - 1];
+        // this.context.moveTo(x + TAILR, y); //arc的起笔是在圆的(0,r)位置
+        this.context.arc(x, y, TAILR, 0, Math.PI * 2);
+        this.context.globalAlpha = "0.6";
+        this.context.stroke();
+        this.context.globalAlpha = "0.2";
+        this.context.fill();
+        this.context.restore();
+    }
+    // 橡皮擦
+    eraser(x, y, isDone) {
+        if (!this.lastEraser) {
+            this.lastEraser = { x, y };
+            return;
+        }
+        this.eraserMain();
+        /* 绘制本次橡皮擦圆圈 */
+        if (isDone) {
+            this.lastEraser = null;
+            return;
+        }
+        this.context.save();
+        this.context.beginPath();
+        this.setEraserAttributes();
+        this.context.arc(x, y, TAILR, 0, Math.PI * 2);
+        this.context.clip();
         this.context.stroke();
         this.context.restore();
+        this.lastEraser.x = x;
+        this.lastEraser.y = y;
+    }
+    // 擦除上次橡皮擦圆圈，并补上背景
+    eraserMain() {
+        this.context.save();
+        this.context.beginPath();
+        // +1是为了防锯齿
+        this.context.arc(this.lastEraser.x, this.lastEraser.y, TAILR + ERASER_LINE_WIDTH + 1, 0, Math.PI * 2);
+        this.context.clip();
+        // this.context.fill(); //这里是不用fill的，原因就是下面画网格的时候就相当于清空了这个圆里面的内容
+        this.tool.grid(0, 0, this.canvas.width, this.canvas.height, 10);
+        this.context.restore();
+    }
+    // 橡皮擦样式，模仿下书中的样式
+    setEraserAttributes() {
+        this.context.lineWidth = ERASER_LINE_WIDTH;
+        this.context.shadowColor = ERASER_SHADOW_STYLE;
+        this.context.shadowOffsetX = ERASER_SHADOW_OFFSET;
+        this.context.shadowOffsetY = ERASER_SHADOW_OFFSET;
+        this.context.shadowBlur = ERASER_SHADOW_BLUR;
+        this.context.strokeStyle = ERASER_STROKE_STYLE;
     }
 }

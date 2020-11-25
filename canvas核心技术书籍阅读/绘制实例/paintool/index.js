@@ -14,8 +14,8 @@ let mouseEvent = {
     latestEvent: null,
 };
 
-let aBaseLineTypes = ["line", "rect", "circle"]; //基本类型
-let aPathType = ["openLine", "closeLine","tail"]; //路径类型
+let aBaseTypes = ["line", "rect", "circle"]; //基本类型
+let aPathType = ["openLine", "closeLine", "tail"]; //路径类型
 let pathArr = []; //路径数据存储
 let fontArr = []; //文字存储
 
@@ -47,12 +47,15 @@ toolCanvas.changeIcon = function (value, oldValue) {
             fontArr.length = 0;
         }
     }
+    if (value === "eraser") {
+        drawCanvas.lastEraser = null;
+    }
 };
 
 /* 画布事件监听 */
 drawCanvasDom.addEventListener("mousedown", drawCanvasMouseDown);
 drawCanvasDom.addEventListener("mouseup", drawCanvasMouseUp);
-drawCanvasDom.addEventListener("mousemove", drawCanvasMouseMove);
+drawCanvasDom.addEventListener("mousemove", throttle(drawCanvasMouseMove, 10));
 document.addEventListener("mouseup", documentMouseUp);
 /* keypress按下有值的键时触发（Ctrl、Alt、Shift、Meta 这些键不触发） 如果用户一直按键不松开，就会连续触发键盘事件 */
 document.addEventListener("keypress", documentKeypress);
@@ -98,17 +101,21 @@ function drawCanvasMouseUp(e) {
     if (!mouseEvent.isMouseDown) {
         return;
     }
-    if (!toolCanvas.selectedIcon || toolCanvas.selectedIcon === "font") {
+    let noUpTypes = ["font", "tail"]; //这些类型不需要鼠标放开事件
+    if (!toolCanvas.selectedIcon || noUpTypes.includes(toolCanvas.selectedIcon)) {
         mouseEvent.isMouseDown = false;
         return;
     }
     drawCanvas.strokeColor = strokeColor;
-    drawCanvas.restoreCanvas();
-    if (aBaseLineTypes.includes(toolCanvas.selectedIcon)) {
+    if (toolCanvas.selectedIcon !== "eraser") {
+        // 橡皮擦最后是不能restore的
+        drawCanvas.restoreCanvas();
+    }
+    if (aBaseTypes.includes(toolCanvas.selectedIcon)) {
         drawCanvas.draw(toolCanvas.selectedIcon, [mouseEvent.mouseDownX, mouseEvent.mouseDownY, e.layerX, e.layerY, true]);
     } else if (aPathType.includes(toolCanvas.selectedIcon)) {
         let needFill = toolCanvas.selectedIcon === "closeLine";
-        let type = toolCanvas.selectedIcon === "tail"?"tail":"linePath"
+        let type = toolCanvas.selectedIcon === "tail" ? "tail" : "linePath";
         drawCanvas.draw(type, [pathArr, needFill]);
         pathArr.length = 0;
     } else if (toolCanvas.selectedIcon === "curve") {
@@ -118,6 +125,9 @@ function drawCanvasMouseUp(e) {
             drawCanvas.strokeColor = DRAWINGCOLOR;
             drawCanvas.draw("curve", ["up", mouseEvent.mouseDownX, mouseEvent.mouseDownY, e.layerX, e.layerY]);
         }
+    } else {
+        // 橡皮擦
+        drawCanvas.draw(toolCanvas.selectedIcon, [e.layerX, e.layerY, true]);
     }
     mouseEvent.isMouseDown = false;
     mouseEvent.mouseDownX = -1;
@@ -151,8 +161,11 @@ function drawCanvasMouseMove(e) {
         // font类型没有鼠标移动事件，是由键盘事件控制
         return;
     }
-    drawCanvas.restoreCanvas();
-    if (aBaseLineTypes.includes(toolCanvas.selectedIcon)) {
+    // 路径类型最后一次绘制才需要清空并重绘
+    if (!aPathType.includes(toolCanvas.selectedIcon) && toolCanvas.selectedIcon !== "eraser") {
+        drawCanvas.restoreCanvas();
+    }
+    if (aBaseTypes.includes(toolCanvas.selectedIcon)) {
         // 基本类型添加两条辅助线
         drawCanvas.strokeColor = GUIDELINECOLOR;
         drawCanvas.line(e.layerX, 0, e.layerX, drawCanvasDom.height);
@@ -161,14 +174,17 @@ function drawCanvasMouseMove(e) {
         drawCanvas.draw(toolCanvas.selectedIcon, [mouseEvent.mouseDownX, mouseEvent.mouseDownY, e.layerX, e.layerY]);
     } else if (aPathType.includes(toolCanvas.selectedIcon)) {
         pathArr.push([e.layerX, e.layerY]);
-        let type = toolCanvas.selectedIcon === "tail"?"tail":"linePath"
-        drawCanvas.draw(type, [pathArr]);
+        let type = toolCanvas.selectedIcon === "tail" ? "tail" : "linePath";
+        drawCanvas.draw(type, [pathArr.slice(-2)]);
     } else if (toolCanvas.selectedIcon === "curve") {
         if (drawCanvas.currentCurve && drawCanvas.currentCurve.step === "ballMove") {
             drawCanvas.draw("curve", ["ballMove", e.layerX, e.layerY]);
         } else {
             drawCanvas.draw("curve", [, mouseEvent.mouseDownX, mouseEvent.mouseDownY, e.layerX, e.layerY]);
         }
+    } else {
+        // 橡皮擦
+        drawCanvas.draw(toolCanvas.selectedIcon, [e.layerX, e.layerY]);
     }
     mouseEvent.latestEvent = e;
 }
@@ -199,4 +215,18 @@ function documentKeydown(e) {
         fontArr.pop();
         drawCanvas.draw("font", ["", "", fontArr]);
     }
+}
+
+// 节流函数 防止频繁触发
+function throttle(fn, wait) {
+    var pre = Date.now();
+    return function () {
+        var context = this;
+        var args = arguments;
+        var now = Date.now();
+        if (now - pre >= wait) {
+            fn.apply(context, args);
+            pre = Date.now();
+        }
+    };
 }
