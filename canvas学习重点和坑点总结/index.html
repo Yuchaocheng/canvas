@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .far {
+            width: 1000px;
+            height: 500px;
+        }
+
+        .box {
+            /* width: 600px;
+            height: 400px; */
+            position: absolute;
+            left: 20%;
+            top: 20%;
+            border: 2px solid black;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="far">
+        <canvas class="box" id="box" width="600" height="300"></canvas>
+    </div>
+    <script>
+        let canvas = document.getElementById("box");
+        let ctx = canvas.getContext("2d");
+        function path2() {
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "blue"
+            ctx.moveTo(3, 1)
+            ctx.lineTo(100, 70);
+            ctx.save();
+            ctx.stroke();
+            ctx.clearRect(0, 0, 600, 300)
+            ctx.beginPath();
+            ctx.restore();
+            ctx.stroke();
+        }
+        path2();
+    </script>
+</body>
+
+</html>
