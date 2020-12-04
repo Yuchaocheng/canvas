@@ -20,11 +20,12 @@ export default class DrawCanvas {
         this.context = canvas.getContext("2d");
         this.context.strokeStyle = "cornflowerblue"; // 默认线条颜色
         this.context.fillStyle = "rgba(253, 203, 110,0.6)"; // 默认填充颜色
+        this.context.lineWidth = 1; // 默认线条长度
         this.context.font = FONTSTYLE; //默认字体样式
         /* 使字体位于单位中心 */
         this.context.textBaseline = "middle"; //默认alphabetic
         this.tool = new ToolCanvas(canvas);
-        this.tool.grid(0, 0, this.canvas.width, this.canvas.height, 10);
+        this.grid();
         this.currentCurve = null;
         this.#ImageData = null;
         this.currentFont = null;
@@ -42,6 +43,15 @@ export default class DrawCanvas {
     }
     set fillColor(value) {
         this.context.fillStyle = value;
+    }
+    get lineWidth() {
+        return this.context.lineWidth;
+    }
+    set lineWidth(value) {
+        this.context.lineWidth = value;
+    }
+    grid() {
+        this.tool.grid(0, 0, this.canvas.width, this.canvas.height, 10);
     }
     saveImageData(isTem) {
         // 临时保存
@@ -259,7 +269,7 @@ export default class DrawCanvas {
         this.context.arc(this.lastEraser.x, this.lastEraser.y, TAILR + ERASER_LINE_WIDTH + 1, 0, Math.PI * 2);
         this.context.clip();
         // this.context.fill(); //这里是不用fill的，原因就是下面画网格的时候就相当于清空了这个圆里面的内容
-        this.tool.grid(0, 0, this.canvas.width, this.canvas.height, 10);
+        this.grid();
         this.context.restore();
     }
     // 橡皮擦样式，模仿下书中的样式
@@ -270,5 +280,47 @@ export default class DrawCanvas {
         this.context.shadowOffsetY = ERASER_SHADOW_OFFSET;
         this.context.shadowBlur = ERASER_SHADOW_BLUR;
         this.context.strokeStyle = ERASER_STROKE_STYLE;
+    }
+    // 清空画布
+    clearAll() {
+        this.canvas.width = this.canvas.width;
+        this.grid();
+    }
+    // 画布截屏
+    capture() {
+        /* transitionend animationend 动画回调函数 */
+        let img = document.createElement("img");
+        let btn = document.createElement("button");
+        btn.innerHTML = "×";
+        btn.style.position = "fixed";
+        btn.onclick = () => {
+            img.style.opacity = 0;
+            setTimeout(() => {
+                document.body.removeChild(img);
+            }, 600);
+        };
+        this.canvas.toBlob((blob) => {
+            let url = URL.createObjectURL(blob);
+            img.src = url;
+        });
+        img.onload = () => {
+            let style = {
+                transition: "all 0.6s ease-out",
+                transformOrigin: "right bottom",
+                position: "fixed",
+                right: 0,
+                bottom: 0,
+            };
+            document.body.appendChild(img);
+            Object.assign(img.style, style);
+            setTimeout(() => {
+                btn.style.bottom = img.height / 2 - 22 + "px";
+                btn.style.right = "6px";
+                setTimeout(() => {
+                    document.body.appendChild(btn);
+                }, 600);
+                img.style.transform = "scale(0.5)";
+            }, 50);
+        };
     }
 }

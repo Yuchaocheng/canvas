@@ -6,6 +6,8 @@ const GUIDELINECOLOR = "rgba(116, 185, 255,1)"; //辅助线颜色
 const DEFAULTCURSOR = "crosshair"; //默认鼠标样式
 
 let strokeColor = "cornflowerblue"; //图形边界颜色，默认为cornflowerblue
+let fillColor = "rgba(253, 203, 110,0.6)"; //图形边界颜色，默认为cornflowerblue
+let lineWidth = 1; // 默认线条宽度
 // 鼠标事件数据
 let mouseEvent = {
     isMouseDown: false,
@@ -107,6 +109,8 @@ function drawCanvasMouseUp(e) {
         return;
     }
     drawCanvas.strokeColor = strokeColor;
+    drawCanvas.fillColor = fillColor;
+    drawCanvas.lineWidth = lineWidth;
     if (toolCanvas.selectedIcon !== "eraser") {
         // 橡皮擦最后是不能restore的
         drawCanvas.restoreCanvas();
@@ -229,4 +233,27 @@ function throttle(fn, wait) {
             pre = Date.now();
         }
     };
+}
+
+/* ****************   绘制结束，下面是页面事件   ********************** */
+let strokeColorDom = document.getElementById("strokeColor");
+let fillColorDom = document.getElementById("fillColor");
+let lineWidthDom = document.getElementById("lineWidth");
+let clearBtnDom = document.getElementById("clearCanvas");
+let captureScreenDom = document.getElementById("captureScreen");
+let captureImgDom = document.getElementById("captureImg");
+strokeColorDom.onchange = function () {
+    strokeColor = this.value;
+};
+fillColorDom.onchange = function () {
+    fillColor = this.value;
+};
+lineWidthDom.onchange = function () {
+    lineWidth = this.value;
+};
+clearBtnDom.onclick = function () {
+    drawCanvas.clearAll()
+};
+captureScreenDom.onclick = function(){
+    drawCanvas.capture(captureImgDom)
 }
