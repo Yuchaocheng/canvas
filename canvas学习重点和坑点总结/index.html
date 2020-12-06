@@ -20,29 +20,55 @@
             border: 2px solid black;
         }
 
+        #box2 {
+            border: 2px solid black;
+            /* width: 600px;
+            height: 500px; */
+        }
+
     </style>
 </head>
 
 <body>
     <div class="far">
-        <canvas class="box" id="box" width="600" height="300"></canvas>
+        <canvas class="box" id="box" width="400" height="200"></canvas>
+        <canvas id="box2"></canvas>
     </div>
     <script>
         let canvas = document.getElementById("box");
         let ctx = canvas.getContext("2d");
         function path2() {
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = "blue"
-            ctx.moveTo(3, 1)
-            ctx.lineTo(100, 70);
-            ctx.save();
+            ctx.lineWidth = 20;
+            ctx.strokeStyle = "rgba(0,255,0,0.5)"
+            ctx.moveTo(50, 70)
+            ctx.lineTo(350, 70);
             ctx.stroke();
-            ctx.clearRect(0, 0, 600, 300)
-            ctx.beginPath();
-            ctx.restore();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "black"
+            ctx.moveTo(50, 100)
+            ctx.lineTo(350, 100);
             ctx.stroke();
         }
-        path2();
+        // path2();
+        function shadow() {
+            ctx.shadowOffsetX = 10;
+            ctx.shadowOffsetY = 10;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillStyle = "rgba(0,0,0)"
+            ctx.fillRect(25, 25, 100, 100);
+        }
+        // shadow()
+        function ccanvasSize() {
+            let canvas = document.getElementById("box2");
+            let ctx = canvas.getContext("2d");
+            ctx.lineWidth = 2;
+            // ctx.moveTo(20, 20)
+            ctx.lineTo(250, 120);
+            // ctx.lineTo(150, 120);
+            ctx.stroke();
+        }
+        ccanvasSize();
     </script>
 </body>
 

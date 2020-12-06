@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas 裁剪路径</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    #canvas {
+        border: 1px solid black;
+        margin: 200px;
+    }
+
+</style>
+
+<body>
+    <canvas id="canvas" width="600" height="600"></canvas>
+</body>
+<script>
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+    let x = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    console.log(x);
+    function grid() {
+        const gridGap = 10
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.beginPath();
+        /* 横向纵向间隔相等 */
+        for (let i = gridGap + 0.5; i < w; i += gridGap) {
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, h);
+            ctx.moveTo(0, i);
+            ctx.lineTo(w, i);
+        }
+        ctx.strokeStyle = "green";
+        ctx.stroke();
+        ctx.restore();
+        ctx.clearRect(0, 0, 100, 100);
+    }
+    function clip1() {
+        ctx.save();
+        ctx.save();
+        ctx.strokeStyle = "green"
+        ctx.translate(150, 150);
+        ctx.arc(0, 0, 150, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+        ctx.clip();
+    }
+    clip1();
+
+
+    grid();
+
+
+
+    //图像裁剪（基本）
+    function clipFun() {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'red';
+        ctx.rect(0, 0, 200, 200);
+        ctx.clip();
+        /* beginPath后路径就重新计算了，stroke就从当前路径stroke。否则路径就是一直存在的*/
+        // ctx.beginPath();  
+        ctx.arc(200, 200, 100, (Math.PI / 180) * 0, (Math.PI / 180) * 360, false);
+        ctx.stroke();
+        ctx.closePath();
+    }
+    // clipFun();
+    //gif的例子
+    function clipGif() {
+        let dig = Math.PI / 180
+        let i = 0
+        function draw() {
+            ctx.clearRect(0, 0, 600, 600);
+            ctx.beginPath();
+            /* 角度计算默认是顺时针方向计算的 */
+            ctx.arc(350, 350, 200, 0, i * dig);
+            ctx.stroke()
+            // ctx.lineTo(350, 350);
+            // ctx.closePath();
+        }
+        let timer = setInterval(() => {
+            if (i > 360) {
+                clearInterval(timer);
+                i = 0;
+            } else {
+                draw();
+                i++
+            }
+        }, 10)
+    }
+    // clipGif();
+
+    //例子2
+    function clipGif2() {
+        let count = 0;//计数
+        let dig = Math.PI / 20;
+
+        var img = new Image();
+        img.src = "./image/bridge.jpg";
+        img.onload = (() => {
+            setInterval(() => {
+                if (count >= -40) {
+                    addRadial();
+                    count--
+                }
+            }, 100)
+        });
+        function addRadial() {
+            /* 保存和恢复绘画状态是必须的，否则的画canvas clip效果永远存在。那么第一次clip最小的弧形，就会只显示那么一点点了 */
+            ctx.save();//保存当前绘图状态
+            ctx.beginPath();//开始创建路径
+            console.log('dig==', dig)
+            console.log('count', count)
+            ctx.arc(250, 250, 150, 0, dig * count, true);
+            /* 添加lineTo和closePath让弧形两端和圆点相连，而不是弧的两端点相连。即封闭成一个扇形而不是一个弧形 */
+            ctx.lineTo(250, 250);
+            ctx.closePath();//关闭路径
+            ctx.stroke();
+            ctx.clip();
+            ctx.drawImage(img, 100, 100, 300, 300);
+            ctx.restore();
+        }
+    }
+    clipGif2();
+</script>
+
+</html>

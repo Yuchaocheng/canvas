@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>canvas合成与裁剪</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        width: 100vw;
+        height: 100vh;
+    }
+
+    #canvas {
+        border: 1px solid black;
+        margin: 200px;
+    }
+</style>
+
+<body>
+    <canvas id="canvas" width="300" height="300"></canvas>
+</body>
+<script>
+    /** @type {HTMLCanvasElement} */
+    let ctx = document.getElementById("canvas").getContext("2d");
+    //学习globalCompositeOperation属性，图像合成。
+    function globalCompositeOperationTest() {
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,0,0)';
+        ctx.beginPath();
+        ctx.arc(80, 80, 80, 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.fill();
+        /* 默认情况下（source-over），后画的图形（目标图形）会覆盖先画的图形（源图形） */
+        // ctx.globalCompositeOperation = 'source-in'; //目标图形和源图形重叠且都不透明的部分才被绘制。
+        ctx.globalCompositeOperation = 'source-out'; //目标图形和源图形不重叠的部分会被绘制。
+        // ctx.globalCompositeOperation = 'source-atop'; //目标图形和源图形内容重叠的部分+源图形其余部分。
+        // ctx.globalCompositeOperation = 'destination-over'; //这个属性很明显和默认值source-over相反，源图形覆盖目标图形。
+        // ctx.globalCompositeOperation = 'destination-in'; //
+        // ctx.globalCompositeOperation = 'destination-out'; //
+        // ctx.globalCompositeOperation = 'destination-atop'; 
+        // ctx.globalCompositeOperation = 'lighter';//?颜色值相加,示例未看出效果
+        // ctx.globalCompositeOperation = 'copy';//只显示目标图形
+        // ctx.globalCompositeOperation = 'xor';//重叠部分颜色叠加，其余部分正常显示
+        // ctx.globalCompositeOperation = 'multiply';//像素相乘，结果是一幅更黑暗的图片
+        //还有很多关于颜色变化的取值，就不一一尝试了，个人感觉最有用的还是裁剪的属性，可以组合成一些常见的图案。
+        ctx.fillStyle = 'orange';
+        ctx.beginPath();
+        ctx.arc(120, 120, 80, 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+    ctx.fillRect(400,400,100,100);
+    globalCompositeOperationTest();
+</script>
+
+</html>
