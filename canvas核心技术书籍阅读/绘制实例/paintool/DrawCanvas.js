@@ -283,18 +283,20 @@ export default class DrawCanvas {
     }
     // 清空画布
     clearAll() {
-        this.canvas.width = this.canvas.width;
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.grid();
     }
-    // 画布截屏
+    // 画布截屏(写得不是很好，有时间优化下)
     capture() {
         /* transitionend animationend 动画回调函数 */
         let img = document.createElement("img");
-        let btn = document.createElement("button");
+        let btn = document.createElement("xy-button");
         btn.innerHTML = "×";
         btn.style.position = "fixed";
+
         btn.onclick = () => {
             img.style.opacity = 0;
+            document.body.removeChild(btn);
             setTimeout(() => {
                 document.body.removeChild(img);
             }, 600);
@@ -314,7 +316,7 @@ export default class DrawCanvas {
             document.body.appendChild(img);
             Object.assign(img.style, style);
             setTimeout(() => {
-                btn.style.bottom = img.height / 2 - 22 + "px";
+                btn.style.bottom = img.height / 2 - 40 + "px";
                 btn.style.right = "6px";
                 setTimeout(() => {
                     document.body.appendChild(btn);

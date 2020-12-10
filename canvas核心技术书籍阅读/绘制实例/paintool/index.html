@@ -7,12 +7,10 @@
   <title>绘制罗盘2.7</title>
   <link rel="stylesheet/less" href="style.less" />
   <script src="http://cdn.bootcss.com/less.js/2.7.0/less.js"></script>
-  <!-- 原生ui组件库 -->
   <script type="module">
-    import * as test from "./index.js"
-      // import "https://unpkg.com/xy-ui";
+    import "./index.js"
+    import "./xy-ui/index.js"; /* 原生ui组件库  */
   </script>
-  <script type="module" src="https://unpkg.com/xy-ui"></script>
 </head>
 
 <body>
@@ -42,17 +40,16 @@
       <div class="item">
         <xy-button type="primary" id="captureScreen">画布截屏</xy-button>
       </div>
+      <div class="item">
+        <xy-button icon="link">link</xy-button>
+      </div>
     </div>
     <div class="main">
       <canvas id="toolCanvas" class="left" width="80" height="680">浏览器不支持canvas</canvas>
       <canvas id="drawCanvas" class="right" width="915" height="680">浏览器不支持canvas</canvas>
     </div>
   </div>
-  <script type="module">
-    function changeStrokeColor() {
-      console.log(111111111);
-    }
-  </script>
+  <script type="module"></script>
 </body>
 
 </html>

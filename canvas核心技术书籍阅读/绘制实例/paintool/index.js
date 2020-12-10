@@ -179,6 +179,11 @@ function drawCanvasMouseMove(e) {
     } else if (aPathType.includes(toolCanvas.selectedIcon)) {
         pathArr.push([e.layerX, e.layerY]);
         let type = toolCanvas.selectedIcon === "tail" ? "tail" : "linePath";
+        if (type === "tail") {
+            // 尾随效果move就需要重新设置strokeColor和fillColor
+            drawCanvas.strokeColor = strokeColor;
+            drawCanvas.fillColor = fillColor;
+        }
         drawCanvas.draw(type, [pathArr.slice(-2)]);
     } else if (toolCanvas.selectedIcon === "curve") {
         if (drawCanvas.currentCurve && drawCanvas.currentCurve.step === "ballMove") {
