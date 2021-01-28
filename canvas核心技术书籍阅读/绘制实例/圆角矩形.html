@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>arcTo方法解析（圆角矩形）</title>
+  <style>
+    body {
+      background: #dddddd;
+    }
+
+    #canvas {
+      margin: 20px;
+      background: #ffffff;
+      border: thin solid #aaaaaa;
+    }
+
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas" width="800" height="500">浏览器不支持</canvas>
+  <script>
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+    //圆角矩形 arcTo方法，还是比较方便的。arcTo方法以我现在的理解貌似只能画小圆弧。
+    // r传入数字则代表4个角圆角值一样，传入数组则可以单独设置每个角
+    function roundRect(x, y, w, h, r = 0) {
+      ctx.beginPath();
+      let roundArr = []
+      if (typeof r === "number") {
+        roundArr = new Array(4).fill(r);
+      } else {
+        roundArr = r
+      }
+      // r不能超过宽高中较小的那个的一半
+      let iMaxR = Math.min(w, h) / 2
+      roundArr = roundArr.map(item => {
+        if (item > iMaxR) {
+          item = iMaxR
+        }
+        return item
+      })
+      ctx.moveTo(x + roundArr[0], y);
+      // arcTo会绘制当前笔触（moveTo）到第一个端点的路径，所以lineTo可以省略
+      // ctx.lineTo(x + w - r, y);
+      ctx.arcTo(x + w, y, x + w, y + roundArr[1], roundArr[1]);
+      ctx.arcTo(x + w, y + h, x + w - roundArr[2], y + h, roundArr[2]);
+      ctx.arcTo(x, y + h, x, y + h - roundArr[3], roundArr[3]);
+      ctx.arcTo(x, y, x + roundArr[0], y, roundArr[0]);
+      ctx.stroke();
+    }
+    roundRect(100, 100, 200, 100,[50,50,0,0]);
+
+
+    // arc方法(同样可以实现上面的四个角，就不在写了这里)
+    function roundRect2(x, y, w, h, r = 0) {
+      ctx.beginPath();
+
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.arc(x + w - r, y + r, r, 1.5 * Math.PI, 0);
+
+      ctx.lineTo(x + w, y + h - r);
+      ctx.arc(x + w - r, y + h - r, r, 0, 0.5 * Math.PI);
+
+      ctx.lineTo(x + r, y + h);
+      ctx.arc(x + r, y + h - r, r, 0.5 * Math.PI, Math.PI);
+
+      ctx.lineTo(x, y + r);
+      ctx.arc(x + r, y + r, r, 1 * Math.PI, 1.5 * Math.PI);
+
+
+      ctx.stroke();
+    }
+    roundRect2(100, 300, 100, 100, 10)
+  </script>
+</body>
+
+</html>
