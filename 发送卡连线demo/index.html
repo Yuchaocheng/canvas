@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="myApp">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="./doc/angular.js"></script>
+    <script src="./doc/polyfill2.js"></script>
+    <title>发送卡连线demo</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    .content {
+        width: 1203px;
+        height: 680px;
+        border: 1px solid #d7d7d7;
+        margin: 120px auto;
+    }
+
+    .canvas-container {
+        border: 1px solid black;
+        width: 540px;
+        height: 320px;
+        position: relative;
+        margin: 0 auto;
+    }
+
+    .canvas-container.isConnecting:hover {
+        cursor: crosshair;
+    }
+
+    #bg_canvas,
+    #main_canvas {
+        position: absolute;
+    }
+
+    #bg_canvas {
+        background-color: #b5b5b5;
+    }
+
+    .left {
+        width: 27.5%;
+        height: 100%;
+        float: left;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .right {
+        float: right;
+        width: 71.5%;
+        box-sizing: border-box;
+        padding: 20px;
+    }
+
+    .apart {
+        width: 1px;
+        height: 100%;
+        background-color: #d7d7d7;
+        float: left;
+        margin-left: 0.5%;
+    }
+
+    .colorChunk {
+        width: 44px;
+        height: 44px;
+        line-height: 44px;
+        font-size: 24px;
+        text-align: center;
+        list-style: none;
+        color: white;
+        cursor: pointer;
+        float: left;
+        margin-right: 10px;
+        border: 2px solid transparent;
+    }
+
+    .colorChunk:hover {
+        opacity: 0.8;
+    }
+
+    .colorChunk.isActive {
+        border: 2px solid red;
+    }
+
+    .btn-head {
+        height: 60px;
+        margin-bottom: 10px;
+        text-align: right;
+        box-sizing: border-box;
+        padding-top: 20px;
+    }
+
+    .btn {
+        padding: 4px 18px;
+        cursor: pointer;
+    }
+
+    .btn+.btn {
+        margin-left: 10px;
+    }
+
+    .canva-box {
+        width: 100%;
+        border: 1px solid #999999;
+        padding: 40px 0;
+    }
+
+    .horizontal-num {
+        width: 100%;
+        position: absolute;
+        top: 0;
+        transform: translateY(-100%);
+        list-style: none;
+        padding-bottom: 6px;
+    }
+
+    .horizontal-num li {
+        float: left;
+        text-align: center;
+    }
+
+    .vertical-num {
+        position: absolute;
+        left: 0;
+        transform: translateX(-100%);
+        list-style: none;
+        height: 100%;
+        padding-right: 8px;
+    }
+
+    .vertical-num li {
+        display: flex;
+        align-items: center;
+    }
+
+    .movingCell {
+        font-weight: bold;
+    }
+
+</style>
+
+<body>
+    <div class="content" ng-controller="myCtrl">
+        <div class="left">
+            <div style="margin-bottom: 20px;margin-top: 20px;">请选择发送口进行连线</div>
+            <ul class="colorList">
+                <li ng-repeat="color in colorList" class="colorChunk" ng-class="{isActive: activeColor===color}"
+                    ng-style="{ 'background-color': color}" ng-click="selectColor(color)">{{$index}}
+                </li>
+            </ul>
+        </div>
+        <div class="apart"></div>
+        <div class="right">
+            <div class="btn-head">
+                <button class="btn">撤销</button>
+                <button class="btn" ng-click="reset()">恢复</button>
+            </div>
+            <div class="canva-box">
+                <div class="canvas-container" ng-class="{isConnecting: activeColor}">
+                    <div class="horizontal-num">
+                        <li ng-repeat="i in aHorizontalNum" ng-style="aHorizontalStyle" ng-class="{movingCell: i===iMonvingX+1}">{{i}}</li>
+                    </div>
+                    <div class="vertical-num">
+                        <li ng-repeat="i in aVerticalNum" ng-style="aVerticalStyle" ng-class="{movingCell: i===iMonvingY+1}">{{i}}</li>
+                    </div>
+                    <canvas id="bg_canvas" width="540" height="320"></canvas>
+                    <canvas id="main_canvas" width="540" height="320" ng-mousemove="handleMouseMove($event)" ng-mouseleave="handleMouseLeave()"
+                        ng-click="clickCell($event)"></canvas>
+                </div>
+            </div>
+            <div class="btn-foot"></div>
+        </div>
+    </div>
+</body>
+<script>
+    /* 常量 */
+    var BACKGROUNDCOLOR = "#b5b5b5"; //背景色
+    var BGLINEWIDTH = 1 //背景网格线宽
+    var IRADIUS = 30 // 圆半径
+    var IRADIUSWIDTH = 2 // 圆线条宽度
+    var CIRCLESTROKECOLOR = "white"; //圆线条颜色
+    var FONTSTYLE = "30px Palatino"; //圆内字体样式
+    var FONTCOLOR = "white"; //圆内字体样式
+
+
+    /* 背景canvas和context */
+    var bgCanvas = document.getElementById("bg_canvas");
+    var bgCtx = bgCanvas.getContext("2d");
+
+    /* 主绘制canvas和context */
+    var canvas = document.getElementById("main_canvas");
+    var ctx = canvas.getContext("2d");
+
+    var iXNum = 4; //水平方向单元格数量
+    var iYNum = 3; //垂直方向单元格数量
+    var aCellList = [];// 单元格坐标信息
+    var iWidth = bgCanvas.width / iXNum //单元格宽度
+    var iHeight = bgCanvas.height / iYNum //单元格高度
+    var iMovingCell = -1; // 鼠标移动的单元格
+    var iClickCell = -1; //  鼠标点击单元格
+
+    //绘制背景网格，计算线宽，iX:水平方向网格数
+    function grid(iX, iY) {
+        bgCtx.save();
+        var iWidth = (bgCanvas.width - (iX - 1) * BGLINEWIDTH) / iX;
+        var iHeight = (bgCanvas.height - (iY - 1) * BGLINEWIDTH) / iY;
+        for (var i = 1; i < iX; i++) {
+            var drawX = iWidth * i + (i - 1) * BGLINEWIDTH + BGLINEWIDTH / 2;
+            bgCtx.moveTo(drawX, 0)
+            bgCtx.lineTo(drawX, bgCanvas.height)
+        }
+        for (var j = 1; j < iY; j++) {
+            var drawY = iHeight * j + (j - 1) * BGLINEWIDTH + BGLINEWIDTH / 2;
+            bgCtx.moveTo(0, drawY)
+            bgCtx.lineTo(bgCanvas.width, drawY)
+        }
+        bgCtx.lineWidth = BGLINEWIDTH;
+        bgCtx.stroke();
+        bgCtx.restore();
+    };
+    // 绘制背景网格，不计算线宽。一般线宽为1、2像素的时候
+    function grid2(iX, iY) {
+        aCellList = Array.from({ length: iX * iY }, function (item, index) {
+            var xP = (index % iX) * iWidth;
+            var yP = Math.floor(index / iX) * iHeight;
+            return [xP, yP]
+        });
+        bgCtx.save();
+        bgCtx.translate(0.5, 0.5); // 半像素问题解决
+        for (var i = 1; i < iX; i++) {
+            var drawX = iWidth * i;
+            bgCtx.moveTo(drawX, 0);
+            bgCtx.lineTo(drawX, bgCanvas.height);
+        }
+        for (var j = 1; j < iY; j++) {
+            var drawY = iHeight * j;
+            bgCtx.moveTo(0, drawY);
+            bgCtx.lineTo(bgCanvas.width, drawY);
+        }
+
+        bgCtx.lineWidth = BGLINEWIDTH;
+        bgCtx.stroke();
+        bgCtx.restore();
+    }
+    grid2(iXNum, iYNum);
+
+    // 单元格背景填充
+    function fillCell(color) {
+        if (!color) {
+            return
+        }
+        let aCell = aCellList[iClickCell];
+        ctx.save();
+        ctx.fillStyle = color;
+        /* 减去border长度 */
+        ctx.fillRect(aCell[0] + 1, aCell[1] + 1, iWidth - 2, iHeight - 2)
+        ctx.restore()
+    }
+    // 圆圈数字绘制。iIndex第几个单元格
+    function drawTextCircle(iIndex) {
+        ctx.save();
+        var aCell = aCellList[iIndex];
+        var x = aCell[0] + iWidth / 2;
+        var y = aCell[1] + iHeight / 2;
+        ctx.beginPath();
+        ctx.strokeStyle = CIRCLESTROKECOLOR;
+        ctx.fillStyle = FONTCOLOR;
+        ctx.lineWidth = IRADIUSWIDTH;
+        ctx.arc(x, y, IRADIUS, 0, Math.PI * 2)
+        ctx.font = FONTSTYLE;
+        /* 使字体位于单位中心 */
+        ctx.textBaseline = "middle"; //字体相对y坐标居中
+        ctx.textAlign = "center"; // 字体相对x坐标居中
+        /* 感觉+2px后视觉上才垂直居中，先这么处理下 */
+        ctx.fillText(1, x, y + 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+    var app = angular.module('myApp', []);
+    app.controller('myCtrl', function ($scope, $rootScope) {
+        $scope.activeColor = "";
+        $scope.colorList = ["#00acb9", "#ffb812", "#00b56f", "#bf804d"];
+        $scope.aHorizontalNum = Array.from({ length: iXNum }, function (x, i) { return i + 1 });
+        $scope.aVerticalNum = Array.from({ length: iYNum }, function (x, i) { return i + 1 });
+        $scope.aHorizontalStyle = { width: 100 / iXNum + "%" };
+        $scope.aVerticalStyle = { height: 100 / iYNum + "%" };
+        $scope.iMonvingX = -1; //正在移动的横向单元格数
+        $scope.iMonvingY = -1; // 正在移动的纵向单元格数
+        $scope.selectColor = function (color) {
+            $scope.activeColor = color
+        };
+        // 鼠标移动事件
+        $scope.handleMouseMove = function (e) {
+            iMouseMovingCell = findCurrentIndex(e.offsetX, e.offsetY);
+            $scope.iMonvingX = iMouseMovingCell % iXNum;
+            $scope.iMonvingY = Math.floor(iMouseMovingCell / iXNum);
+        };
+        // 鼠标离开事件
+        $scope.handleMouseLeave = function () {
+            iMouseMovingCell = -1;
+            iClickCell = -1;
+            $scope.iMonvingX = -1;
+            $scope.iMonvingY = -1;
+        }
+        // 鼠标点击事件
+        $scope.clickCell = function (e) {
+            if (!$scope.activeColor) {
+                return
+            }
+            iClickCell = findCurrentIndex(e.offsetX, e.offsetY);
+            fillCell($scope.activeColor);
+            drawTextCircle(iClickCell)
+        }
+    });
+    /* 工具函数 */
+    // 根据位置找到单元格
+    function findCurrentIndex(offsetX, offsetY) {
+        return aCellList.findIndex(function (item) {
+            var bXIn = offsetX >= item[0] && offsetX <= item[0] + iWidth;
+            var bYIn = offsetY >= item[1] && offsetY <= item[1] + iHeight;
+            return bXIn && bYIn;
+        })
+    }
+</script>
+
+</html>
