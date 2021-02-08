@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>两点算夹角</title>
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            margin: 20px;
+            background: #ffffff;
+            border: thin solid #aaaaaa;
+        }
+
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas" width="800" height="500">浏览器不支持</canvas>
+    <script>
+        let canvas = document.getElementById("canvas");
+        let ctx = canvas.getContext("2d");
+        let [x1, y1, x2, y2] = [100, 100, 200, 200]
+        ctx.translate(x1,y1);
+        // ctx.rotate(-Math.PI * 0.25)
+        ctx.moveTo(0, 0)
+        ctx.lineTo(x2-x1, y2-y1)
+        ctx.stroke();
+
+        //计算两点之间的夹角
+        function countAngle(x1, y1, x2, y2) {
+            return Math.atan((y2 - y1) / (x2 - x1))
+        }
+    </script>
+</body>
+
+</html>

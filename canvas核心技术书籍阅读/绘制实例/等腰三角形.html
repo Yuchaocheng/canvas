@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>等腰三角形</title>
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            margin: 20px;
+            background: #ffffff;
+            border: thin solid #aaaaaa;
+        }
+
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas" width="800" height="500">浏览器不支持</canvas>
+    <script>
+        let canvas = document.getElementById("canvas");
+        let ctx = canvas.getContext("2d");
+        /* 等腰三角形实现，方向默认朝右（弧度小于1π），x,y顶点坐标,hyp斜边长度，angle顶角弧度 */
+        function isoscelesTriangle(x, y, hyp, angle, drawType) {
+            var oMap = {
+                fill: function () {
+                    ctx.fill();
+                },
+                stroke: function () {
+                    ctx.stroke();
+                },
+                all: function () {
+                    ctx.stroke();
+                    ctx.fill();
+                },
+            }
+            drawType = drawType || "fill";
+            if (!(drawType in oMap)) {
+                return
+            }
+            ctx.beginPath();
+            ctx.save();
+            ctx.translate(x, y); //移动到顶点
+            var h = (hyp / 2) / Math.tan(angle / 2);//高
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-h, -hyp / 2);
+            ctx.lineTo(-h, hyp / 2);
+            ctx.closePath();
+            oMap[drawType]();
+            ctx.restore();
+        }
+        isoscelesTriangle(100, 100, 50, Math.PI * 0.5)
+    </script>
+</body>
+
+</html>

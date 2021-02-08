@@ -1,0 +1,59 @@
+// *{
+//     margin: 0;
+//     padding: 0;
+// }
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #dddddd;
+}
+
+#app {
+    padding: 40px 0 0 40px;
+}
+
+.head {
+    padding-left: 200px;
+    margin-bottom: 40px;
+    display: flex;
+
+    .item {
+        margin-right: 30px;
+    }
+}
+
+.main {
+    display: flex;
+
+    .left,
+    .draw-container {
+        margin-left: 20px;
+        background: #eeeeef;
+        border: thin solid #aaaaaa;
+        border-radius: 8px;
+        /* 3个值的时候代表x、y偏移加shadow颜色，四个值的时候就会加上模糊度 */
+        box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .draw-container {
+        background: #ffffff;
+        border-radius: 12px;
+        width: 915px;
+        height: 680px;
+        position: relative;
+
+        // cursor: crosshair;
+        #bacngroundCanvas,
+        #drawCanvas {
+            position: absolute;
+            border-radius: 8px;
+        }
+    }
+
+    .right {
+        cursor: crosshair;
+    }
+}
