@@ -1,6 +1,6 @@
 import Utils from "./Util.js";
 
-const CANVASBG = "#ffffff"; //canvas默认背景
+const DEFAULTCURSOR = "crosshair"; //默认鼠标样式
 const DRAWINGCOLOR = "green"; //绘制过程中线条的颜色
 const CURVEBALLR = 20; // 贝塞尔曲线图的小球半径
 const FONTSTYLE = "48px Palatino"; //字体样式
@@ -15,90 +15,153 @@ const ERASER_SHADOW_BLUR = 20;
 const GRID_COLOR = "rgb(0, 0, 200)"; // 网格颜色
 
 // 绘制类型为路径类型
-const PATHDRAWTYPE = ["openLine", "closeLine"];
+const PATHDRAWTYPE = ["openLine", "closeLine", "tail"];
 
 export default class DrawCanvas {
-    #ImageData;
     constructor(canvas, bgCanvas) {
         this.canvas = canvas;
         this.context = canvas.getContext("2d");
-        this.context.strokeStyle = "cornflowerblue"; // 默认线条颜色
-        this.context.fillStyle = "rgba(253, 203, 110,0.6)"; // 默认填充颜色
         this.context.lineWidth = 1; // 默认线条长度
         this.context.font = FONTSTYLE; //默认字体样式
         /* 使字体位于单位中心 */
         this.context.textBaseline = "middle"; //默认alphabetic
-        this.strokeColor = "cornflowerblue"; //绘制线条颜色，可配
+        this.context.strokeStyle = this.strokeColor = "cornflowerblue"; //默认线条颜色，可配
+        this.context.fillStyle = this.fillColor = "rgba(253, 203, 110,0.6)"; //默认填充颜色，可配
         this.bgCanvas = bgCanvas;
-        this.currentCurve = null;
-        this.#ImageData = null;
+        this.currentCurve = null; //绘制贝塞尔曲线当前坐标信息
+        this.curveStep = ""; //绘制二次贝塞尔曲线当前步骤
+        this.imageData = null; //保存的canvas像素信息
         this.currentFont = null;
         this.lastEraser = null;
         /* 绘制类型，和左侧icon图标对应 */
         this.drawType = "";
+        this.isDrawing = false; //是否正在绘制某种图形
         /* 鼠标信息 */
         this.mouseInfo = {
-            isMouseDown: false,
             mouseDownX: -1,
             mouseDownY: -1,
-            latestEvent: null,
+            latestEvent: null, //解决鼠标移出画布外up后异常
         };
         // 鼠标移动的路径
         this.pathArr = [];
-        this.init();
+        this.textArr = []; //文字存储
     }
-    get fillColor() {
-        return this.context.strokeStyle;
-    }
-    set fillColor(value) {
-        this.context.fillStyle = value;
-    }
+    // 方便调用
     get lineWidth() {
         return this.context.lineWidth;
     }
     set lineWidth(value) {
         this.context.lineWidth = value;
     }
+    get cursorType() {
+        this.canvas.style.cursor;
+    }
+    set cursorType(cursor) {
+        this.canvas.style.cursor = cursor;
+    }
     init() {
+        this.cursorType = DEFAULTCURSOR;
         this.grid();
         this.handleMouseDown = this.handleMouseDown.bind(this); //监听函数绑定this
         this.handleMouseUp = this.handleMouseUp.bind(this);
         this.handleMouseMove = Utils.throttle(this.handleMouseMove, 16).bind(this);
+        this.documentMouseUp = this.documentMouseUp.bind(this);
+        this.documentKeypress = this.documentKeypress.bind(this);
+        this.documentKeydown = this.documentKeydown.bind(this);
         this.canvas.addEventListener("mousedown", this.handleMouseDown);
         this.canvas.addEventListener("mouseup", this.handleMouseUp);
         this.canvas.addEventListener("mousemove", this.handleMouseMove);
+        document.addEventListener("mouseup", this.documentMouseUp);
+        document.addEventListener("keypress", this.documentKeypress);
+        document.addEventListener("keydown", this.documentKeydown);
+    }
+    // 实例销毁，主要清除监听事件
+    destroy() {
+        this.canvas.removeEventListener("mousemove", this.handleMouseMove);
+        this.canvas.removeEventListener("mouseup", this.handleMouseUp);
+        this.canvas.removeEventListener("mousedown", this.handleMouseDown);
+        document.removeEventListener("mouseup", this.documentMouseUp);
+        document.removeEventListener("keypress", this.documentKeypress);
+        document.removeEventListener("keydown", this.documentKeydown);
+        this.canvas.width = this.canvas.width;
+        this.bgCanvas.width = this.canvas.width;
     }
     /* 鼠标按下 */
     handleMouseDown(e) {
         const { mouseInfo, drawType, pathArr } = this;
+        let isNeedSave = true; //是否需要存储画布数据
         if (PATHDRAWTYPE.includes(drawType)) {
             // 路径类型，鼠标移动时不需要一直重绘
             pathArr.push([e.layerX, e.layerY]);
-        } else {
+        }
+        if (drawType === "curve") {
+            if (this.curveStep === "up") {
+                // 已经绘制上了一个小球后点击
+                this.curveStep = "ballMove";
+                let bInCurveCircle = this.judgeInCircle(e.layerX, e.layerY);
+                if (!bInCurveCircle) {
+                    //如果未点击再圆内，则重新开始画一个二次贝塞尔曲线
+                    this.restoreCanvas();
+                    this.curveStep = "move";
+                }
+                isNeedSave = false;
+            } else if (!this.curveStep) {
+                //初始鼠标点击
+                this.curveStep = "move";
+            }
+        } else if (drawType === "font") {
+            // font 绘制起始于鼠标点击，这和其他一般类型开始于move不同
+            if (this.currentFont) {
+                isNeedSave = false;
+                this.font(e.layerX, e.layerY, true);
+            } else {
+                this.saveImageData(); //先存储再绘制
+                isNeedSave = false;
+                this.font(e.layerX, e.layerY);
+            }
+        }
+        if (isNeedSave) {
             this.saveImageData();
         }
-        mouseInfo.isMouseDown = true;
-        this.context.strokeStyle = DRAWINGCOLOR;
+        this.isDrawing = true;
+        /* 尾随效果直接在move时绘制，不在up时重绘 */
+        this.context.strokeStyle = drawType === "tail" ? this.strokeColor : DRAWINGCOLOR;
         mouseInfo.mouseDownX = e.layerX;
         mouseInfo.mouseDownY = e.layerY;
+        mouseInfo.latestEvent = e;
     }
     /* 鼠标移动 */
     handleMouseMove(e) {
-        const { mouseInfo, drawType, pathArr } = this;
-        console.log(drawType);
-        if (!mouseInfo.isMouseDown) {
+        const { mouseInfo, drawType, pathArr, curveStep } = this;
+        if (!this.isDrawing) {
+            return;
+        }
+        if (drawType === "font") {
+            // font类型没有鼠标移动事件，是由键盘事件控制
             return;
         }
         if (PATHDRAWTYPE.includes(drawType)) {
             pathArr.push([e.layerX, e.layerY]);
-        } else {
+        } else if (drawType === "curve") {
+            if (curveStep === "up" || !curveStep) {
+                //小球已被绘制，鼠标移动过程
+                this.cursorType = this.judgeInCircle(e.layerX, e.layerY) ? "pointer" : DEFAULTCURSOR;
+                return;
+            }
             this.restoreCanvas();
+        } else {
+            if (drawType !== "eraser") {
+                //橡皮擦移动过程中不恢复canvas
+                this.restoreCanvas();
+            }
         }
         let defaultParams = [mouseInfo.mouseDownX, mouseInfo.mouseDownY, e.layerX, e.layerY];
         /* 各绘制方式传入不同参数 */
         let oParamsMap = {
             openLine: [pathArr],
             closeLine: [pathArr],
+            tail: [pathArr],
+            eraser: [e.layerX, e.layerY],
         };
         /* 左侧tool类型和draw方法不对应时，做个映射 */
         let oTypeMap = {
@@ -108,25 +171,42 @@ export default class DrawCanvas {
         let funName = drawType in oTypeMap ? oTypeMap[drawType] : drawType;
         let aParams = drawType in oParamsMap ? oParamsMap[drawType] : defaultParams;
         this[funName](...aParams);
+        mouseInfo.latestEvent = e;
     }
     /* 鼠标松开  */
     handleMouseUp(e) {
         const { mouseInfo, drawType, pathArr } = this;
-        if (!mouseInfo.isMouseDown) {
+        if (!this.isDrawing) {
             return;
         }
-        if (PATHDRAWTYPE.includes(drawType)) {
-            pathArr.push([e.layerX, e.layerY]);
-        } else {
+        let noUpTypes = ["font", "tail"]; //这些类型不需要鼠标放开事件
+        if (noUpTypes.includes(drawType)) {
+            if (drawType === "tail") {
+                this.isDrawing = false;
+            }
+            return;
+        }
+        if (drawType !== "eraser") {
             this.restoreCanvas();
         }
         this.context.strokeStyle = this.strokeColor;
+        this.context.fillStyle = this.fillColor;
+        if (drawType === "curve") {
+            if (this.curveStep === "move") {
+                this.curveStep = "up";
+                // 当前还属于绘制过程，并不算绘制完成；
+                this.context.strokeStyle = DRAWINGCOLOR;
+            } else if (this.curveStep === "ballMove") {
+                this.curveStep = "ballUp";
+            }
+        }
         let defaultParams = [mouseInfo.mouseDownX, mouseInfo.mouseDownY, e.layerX, e.layerY];
         let oParamsMap = {
             rect: [...defaultParams, true], // 绘制结束时，矩形和圆填充
             circle: [...defaultParams, true],
-            openLine: [pathArr],
-            closeLine: [pathArr, true],
+            openLine: [pathArr, false, true],
+            closeLine: [pathArr, true, true],
+            eraser: [e.layerX, e.layerY, true],
         };
         /* 左侧icon类型和draw的方法名不完全对应时，映射关系 */
         let oTypeMap = {
@@ -137,12 +217,52 @@ export default class DrawCanvas {
         let aParams = drawType in oParamsMap ? oParamsMap[drawType] : defaultParams;
         this[funName](...aParams);
 
-        /* 初始化数据 */
-        mouseInfo.isMouseDown = false;
+        /* 一般情况下鼠标松开一次绘制结束，下面是一些特殊情况 */
+        if (drawType === "curve" && this.curveStep !== "ballMove") {
+            return;
+        }
+
+        /* 绘制结束，初始化数据 */
+        this.isDrawing = false;
         mouseInfo.mouseDownX = -1;
         mouseInfo.mouseDownY = -1;
         mouseInfo.latestEvent = null;
         pathArr.length = 0;
+    }
+    // 页面鼠标松开事件
+    /* 
+        event.target返回触发事件的元素
+        event.currentTarget返回绑定事件的元素
+    */
+    documentMouseUp(e) {
+        const isUpOut = this.canvas.contains(e.target);
+        if (!isUpOut && this.isDrawing) {
+            this.handleMouseUp(this.mouseInfo.latestEvent);
+        }
+    }
+    // /* keypress按下有值的键时触发（Ctrl、Alt、Shift、Meta 这些键不触发）如果用户一直按键不松开，就会连续触发键盘事件 */
+    documentKeypress(e) {
+        if (this.drawType !== "font") {
+            return;
+        }
+        if (e.keyCode === 13) {
+            // 回车键回车，光标位置移动到下一格，fontArr清空
+            this.font("", "", true); //第三个参数为是否换行
+            return;
+        }
+        this.textArr.push(e.key);
+        this.font();
+    }
+    // 回车键不触发，单独加一个监听函数判断
+    documentKeydown(e) {
+        if (this.drawType !== "font") {
+            return;
+        }
+        if (e.keyCode === 8) {
+            //backpack
+            this.textArr.pop();
+            this.font();
+        }
     }
     // 绘制背景网格
     grid() {
@@ -154,24 +274,14 @@ export default class DrawCanvas {
         ctx.globalAlpha = 0.1;
         Utils.grid(ctx, { xGap: 10, yGap: 10 });
     }
-    saveImageData(isTem) {
-        // 临时保存
-        if (isTem) {
+    saveImageData(isReturn) {
+        if (isReturn) {
             return this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
-        } else {
-            this.#ImageData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
         }
+        this.imageData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
     }
-    restoreCanvas(imgData) {
-        if (imgData) {
-            this.context.putImageData(imgData, 0, 0);
-        } else {
-            this.context.putImageData(this.#ImageData, 0, 0);
-        }
-    }
-    // 总的绘制方法入口
-    draw(type, params) {
-        this[type].apply(this, params);
+    restoreCanvas(imageData = this.imageData) {
+        this.context.putImageData(imageData, 0, 0);
     }
     // 画直线(半像素问题，如果是水平或垂直线，在lineWidth是基数时会出现，原因就是画的线是以起始坐标为中心，向两端扩张造成)
     line(x1, y1, x2, y2) {
@@ -189,7 +299,7 @@ export default class DrawCanvas {
     }
     circle(x1, y1, x2, y2, isFill) {
         this.context.beginPath();
-        let r = this.twoPointDistance(x1, y1, x2, y2);
+        let r = Utils.twoPointDistance(x1, y1, x2, y2);
         /* arc的绘制，border是算在半径内的 */
         this.context.arc(x1, y1, r, 0, Math.PI * 2);
         this.context.stroke();
@@ -197,15 +307,15 @@ export default class DrawCanvas {
             this.context.fill();
         }
     }
-    linePath(pathArr = [], isFill,isDone) {
-        if (pathArr.length <= 2) {
-            // 首次绘制时初始化路径
-            this.context.beginPath();
+    linePath(pathArr = [], isFill, isDone) {
+        this.context.beginPath();
+        let aDrawPath = pathArr.slice(-2);
+        if (isDone) {
+            //鼠标松开时绘制的线条，需绘制整条
+            aDrawPath = pathArr;
         }
-        let endPath = pathArr.slice(-2);
-        console.log(endPath,"endPath");
         /* 路径绘制时，不需要全部重绘，只画结尾两个点 */
-        endPath.forEach((item) => this.context.lineTo(...item));
+        aDrawPath.forEach((item) => this.context.lineTo(...item));
         if (isFill) {
             this.context.closePath();
             this.context.fill();
@@ -214,12 +324,12 @@ export default class DrawCanvas {
     }
     /**
      * curve 方法总共有四个步骤，首次move和up，出现调整球，然后对调整球进行ballMove和ballUp
-     * @param step {String} - [step = "move" ] 当前步骤
      */
-    curve(step = "move", x1, y1, x2, y2) {
-        if (step === "move" || step === "up") {
+    curve(x1, y1, x2, y2) {
+        const { curveStep } = this;
+        if (curveStep === "move" || curveStep === "up") {
             this.line.call(this, x1, y1, x2, y2);
-            if (step === "up") {
+            if (curveStep === "up") {
                 this.drawCurveBall(x1, y1, x2, y2);
                 this.currentCurve = {
                     rx: (x1 + x2) / 2,
@@ -229,22 +339,22 @@ export default class DrawCanvas {
                     startY: y1,
                     endX: x2,
                     endY: y2,
-                    step: "up",
                 };
             }
-        } else if (step === "ballMove") {
-            this.drawCurveBall(x1, y1);
+        } else if (curveStep === "ballMove") {
+            this.drawCurveBall(x2, y2);
             this.context.beginPath();
             this.context.moveTo(this.currentCurve.startX, this.currentCurve.startY);
-            this.context.quadraticCurveTo(x1, y1, this.currentCurve.endX, this.currentCurve.endY);
+            this.context.quadraticCurveTo(x2, y2, this.currentCurve.endX, this.currentCurve.endY);
             this.context.stroke();
-        } else if (step === "ballUp") {
+        } else if (curveStep === "ballUp") {
             this.context.beginPath();
             this.context.moveTo(this.currentCurve.startX, this.currentCurve.startY);
-            this.context.quadraticCurveTo(x1, y1, this.currentCurve.endX, this.currentCurve.endY);
+            this.context.quadraticCurveTo(x2, y2, this.currentCurve.endX, this.currentCurve.endY);
             this.context.fill();
             this.context.stroke();
             this.currentCurve = null;
+            this.curveStep = "";
         }
     }
     // 画curve图的小球
@@ -267,12 +377,11 @@ export default class DrawCanvas {
         this.circle.call(this, cx, cy, cx2, cy2, true);
         this.context.restore();
     }
-    // 计算两点之间距离
-    twoPointDistance(x1, y1, x2, y2) {
-        return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-    }
     // 判断当前点是否在某个圆内,这里主要是为了画曲线时候调用,判断别的圆第三个参数需要传入相应的对象
     judgeInCircle(px, py, circleParams = this.currentCurve) {
+        if (!circleParams) {
+            return false;
+        }
         this.context.beginPath();
         this.context.arc(circleParams.rx, circleParams.ry, circleParams.r, 0, Math.PI * 2);
         return this.context.isPointInPath(px, py);
@@ -280,11 +389,13 @@ export default class DrawCanvas {
     /* 只能输入英文，web上目前好像只有input框能实现其他语言的输入，如果一定要输入其他语言，需要做透明input模拟
        因为这里主要是学习canvas用法，就不做其他语言的扩展了。isDone是否绘制完成 。
     */
-    font(x, y, textArr, isDone) {
+    font(x, y, isDone, needCursor = true) {
         if (this.currentFont) {
             //键盘事件
-            let content = textArr.join("");
+            let content = this.textArr.join("");
             this.restoreCanvas();
+            this.context.strokeStyle = this.strokeColor;
+            this.context.fillStyle = this.fillColor;
             this.context.strokeText(content, this.currentFont.x, this.currentFont.y);
             this.context.fillText(content, this.currentFont.x, this.currentFont.y);
             let textSize = this.context.measureText(content);
@@ -294,7 +405,7 @@ export default class DrawCanvas {
             } else {
                 let newX = x;
                 let newY = y;
-                if (typeof x !== "number") {
+                if (typeof x !== "number" && needCursor) {
                     //按下了回车键
                     newX = this.currentFont.x;
                     newY = this.currentFont.y + this.currentFont.fontSize + FONTLINEGAP;
@@ -302,7 +413,12 @@ export default class DrawCanvas {
                 //一次font绘制结束
                 this.saveImageData();
                 this.currentFont = null;
-                this.font(newX, newY);
+                this.textArr.length = 0;
+                if (needCursor) {
+                    //大部分情况结束一次文字绘制后，立即开启下一次文字绘制。比如换行，比如鼠标切换位置。但是特殊情况只是单纯结束绘制
+                    this.font(newX, newY);
+                }
+                this.isDrawing = false;
             }
         } else {
             this.currentFont = { x, y };
@@ -312,8 +428,8 @@ export default class DrawCanvas {
     // 鼠标光标
     fontCursor(x, y) {
         const CursorWidth = 1;
-        let aMatch = this.context.font.match(/(\d+)px/);
         let fontSize = 48; //默认值
+        const aMatch = this.context.font.match(/(\d+)px/);
         if (aMatch) {
             fontSize = +aMatch[1];
         }
@@ -323,14 +439,6 @@ export default class DrawCanvas {
         this.context.fillStyle = "#1e90ff";
         this.context.fillRect(x, y - fontSize / 2, CursorWidth, fontSize);
         this.context.restore();
-        /* 光标闪烁目前看好像没办法完成，闪烁本身是简单的，但是会影响其他图形，因为半秒内也有可能画了其他图形 */
-        // setTimeout(() => {
-        //     this.context.save();
-        //     this.context.fillStyle = "white";
-        //     this.context.fillRect(x, y - fontSize / 2, CursorWidth, fontSize);
-        //     this.context.fillRect(0,0,200,200);
-        //     this.context.restore();
-        // }, CURSORTIME / 2);
     }
     // 尾随效果
     tail(path) {
@@ -368,16 +476,17 @@ export default class DrawCanvas {
         this.lastEraser.x = x;
         this.lastEraser.y = y;
     }
-    // 擦除上次橡皮擦圆圈，并补上背景
+    // 擦除上次橡皮擦圆圈。擦除上次这个动作也是和橡皮擦实物运用思路是一致的
     eraserMain() {
         this.context.save();
         this.context.beginPath();
         // +1是为了防锯齿
         this.context.arc(this.lastEraser.x, this.lastEraser.y, TAILR + ERASER_LINE_WIDTH + 1, 0, Math.PI * 2);
         this.context.clip();
+        this.clearAll();
         this.context.restore();
     }
-    // 橡皮擦样式，模仿下书中的样式
+    // 橡皮擦样式，模仿书中的样式
     setEraserAttributes() {
         this.context.lineWidth = ERASER_LINE_WIDTH;
         this.context.shadowColor = ERASER_SHADOW_STYLE;

@@ -5,11 +5,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>绘制罗盘2.7</title>
-  <link rel="stylesheet/less" href="style.less" />
+  <link rel="stylesheet/less" href="./style/style.less" />
   <script src="http://cdn.bootcss.com/less.js/2.7.0/less.js"></script>
   <script type="module">
-    import "./index.js"
     import "./xyUi/index.js"; /* 原生ui组件库  */
+    // import 'https://unpkg.com/xy-ui';
   </script>
 </head>
 
@@ -37,19 +37,41 @@
       <div class="item">
         <xy-button type="primary" id="clearCanvas">清空画布</xy-button>
       </div>
-      <div class="item">
-        <xy-button type="primary" id="captureScreen">画布截屏</xy-button>
-      </div>
-      <div class="item">
-        <xy-button icon="link">link</xy-button>
-      </div>
     </div>
     <div class="main">
       <canvas id="toolCanvas" class="left" width="80" height="680">浏览器不支持canvas</canvas>
-      <canvas id="drawCanvas" class="right" width="915" height="680">浏览器不支持canvas</canvas>
+      <div class="draw-container">
+        <canvas id="bacngroundCanvas" width="915" height="680"></canvas>
+        <canvas id="drawCanvas" width="915" height="680">浏览器不支持canvas</canvas>
+      </div>
     </div>
   </div>
-  <script type="module"></script>
+  <script type="module">
+    import DrawGraphic from "./index.js"
+    let toolDom = document.getElementById("toolCanvas")
+    let drawDom = document.getElementById("drawCanvas")
+    let bgDom = document.getElementById("bacngroundCanvas")
+    let drawInstance = new DrawGraphic(toolDom, drawDom, bgDom)
+    drawInstance.init();
+
+    /* 改变绘制组件绘制样式 */
+    let strokeColorDom = document.getElementById("strokeColor");
+    let fillColorDom = document.getElementById("fillColor");
+    let lineWidthDom = document.getElementById("lineWidth");
+    let clearBtnDom = document.getElementById("clearCanvas");
+    strokeColorDom.onchange = (e) => {
+      drawInstance.drawCanvas.strokeColor = e.currentTarget.value;
+    };
+    fillColorDom.onchange = (e) => {
+      drawInstance.drawCanvas.fillColor = e.currentTarget.value;
+    };
+    lineWidthDom.onchange = (e) => {
+      drawInstance.drawCanvas.lineWidth = e.currentTarget.value;
+    };
+    clearBtnDom.onclick = () => {
+      drawInstance.drawCanvas.clearAll();
+    };
+  </script>
 </body>
 
 </html>
