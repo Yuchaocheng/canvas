@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多边形的绘制及操作</title>
+    <style>
+        #canvas {
+            position: fixed;
+            left: 20%;
+            top: 20%;
+            border: 2px solid black;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div style="padding: 6% 20%">
+        x: <input type="text" id="polygonX">
+        y: <input type="text" id="polygonY">
+        边数: <input type="text" id="polygonNum">
+        大小: <input type="text" id="polygonSize">
+        <button onclick="addOne()">新增</button>
+    </div>
+    <div class="box">
+        <canvas id="canvas" width="600" height="600">浏览器不支持</canvas>
+    </div>
+    <script>
+        let canvas = document.getElementById("canvas");
+        let ctx = canvas.getContext("2d");
+        let currentGraphList = []; //已被绘制的图形列表
+        let currentGraph = null; // 当前被操作的对象
+        let iTotalDraw = 0; //已绘制图形数，用作绘制图形内部id,递增，图形被删除也不减
+        let isDraging = false;
+        let imageData = null; //canvas存储数据
+
+        let offsetX = 0 //鼠标移动图形时偏移量
+        let offsetY = 0 //鼠标移动图形时偏移量
+        /* 等边多边形类 */
+        class Polygon {
+            constructor(option) {
+                /* 必传参数 */
+                this.rx = option.rx //多边形外接圆圆心
+                this.ry = option.ry
+                this.r = option.r //多边形外接圆半径
+                this.sideNum = option.sideNum
+                this.id = option.id
+                /* 可传参数 */
+                this.isFill = option.isFill || false
+                this.onlyPath = option.onlyPath || false
+                /* 绘制时以水平方形0度角绘制，90度，即顶点朝上 */
+                this.offsetAngle = option.offsetAngle || Math.PI * 0.5;
+                this.bSelected = false
+                this.ICONSIZE = 16;//图标大小
+                this.pointList = []; //顶点坐标数组，注意，是经过变换后的顶点坐标，所以使用的时候要做同样的变换
+
+                /* 生成实例时绘制 */
+                this.draw();
+                /* 每次生成一个实例，iTotalDraw就增加一 */
+                iTotalDraw++;
+            }
+            get isSelected() {
+                return this.bSelected
+            }
+            set isSelected(value) {
+                this.bSelected = value;
+                if (value) {
+                    this.selected()
+                    this.deleteIcon()
+                }
+            }
+            createPath() {
+                const { rx, ry, r, sideNum, offsetAngle } = this;
+                if (!sideNum >= 3) {
+                    throw new Error("At least three sides")
+                }
+                ctx.save();
+                ctx.beginPath();
+                ctx.translate(rx, ry);
+                /* 旋转是顺时针旋转 */
+                this.pointList = Array.from({ length: sideNum }, (item, index) => {
+                    let angle = Math.PI * 2 / sideNum * index + offsetAngle //夹角度数，初始角度向上Math.PI * 0.5
+                    return { x: r * Math.cos(angle), y: -r * Math.sin(angle) }
+                })
+                this.pointList.forEach((item, i) => {
+                    if (i) {
+                        ctx.lineTo(item.x, item.y)
+                    } else {
+                        ctx.moveTo(item.x, item.y)
+                    }
+                })
+                ctx.closePath()
+                ctx.restore();
+            }
+            draw() {
+                const { onlyPath, isFill, bSelected } = this;
+                this.createPath()
+                if (onlyPath) {
+                    return
+                }
+                if (isFill) {
+                    ctx.fill()
+                }
+                ctx.stroke();
+                if (bSelected) {
+                    this.selected()
+                    this.deleteIcon()
+                }
+            }
+            selected() {
+                const { rx, ry, r } = this;
+                ctx.save()
+                ctx.strokeStyle = "#1e90ff"
+                // ctx.strokeRect(rx - r, ry - r, 2 * r, 2 * r);
+                // ctx.arc(rx, ry, r, 0, Math.PI * 2)
+                // ctx.stroke()
+                this.drawMinRect()
+                ctx.restore()
+            }
+            deleteIcon() {
+                const { rx, ry, r, ICONSIZE, pointList } = this;
+                let xSet = pointList.map(point => point.x);
+                let ySet = pointList.map(point => point.y);
+                const [xMin, xMax, yMin, yMax] = [Math.min(...xSet), Math.max(...xSet), Math.min(...ySet), Math.max(...ySet)];
+                ctx.save();
+                ctx.translate(rx, ry)
+                ctx.translate(xMax - ICONSIZE, yMin);
+                ctx.fillStyle = "#409eff"
+                ctx.fillRect(0, 0, ICONSIZE, ICONSIZE);
+                ctx.beginPath();
+                ctx.moveTo(2, 2);
+                ctx.strokeStyle = "white";
+                ctx.lineTo(ICONSIZE - 2, ICONSIZE - 2)
+                ctx.moveTo(2, ICONSIZE - 2);
+                ctx.lineTo(ICONSIZE - 2, 2)
+                ctx.lineWidth = 2
+                ctx.stroke()
+                ctx.restore()
+            }
+            // 点位是否在本图形内
+            isPointIn(x, y) {
+                const { rx, ry, r } = this;
+                ctx.beginPath()
+                ctx.rect(rx - r, ry - r, 2 * r, 2 * r);
+                return ctx.isPointInPath(x, y)
+            }
+            // 是否在删除图标区域内
+            isPointInDelete(x, y) {
+                const { rx, ry, r, ICONSIZE, pointList } = this;
+                let xSet = pointList.map(point => point.x);
+                let ySet = pointList.map(point => point.y);
+                const [xMin, xMax, yMin, yMax] = [Math.min(...xSet), Math.max(...xSet), Math.min(...ySet), Math.max(...ySet)];
+                ctx.beginPath()
+                ctx.rect(rx + xMax - ICONSIZE, ry+yMin, ICONSIZE, ICONSIZE);
+                return ctx.isPointInPath(x, y)
+            }
+            //多边形最小内置矩形绘制
+            drawMinRect() {
+                const { rx, ry, pointList } = this;
+                let xSet = pointList.map(point => point.x);
+                let ySet = pointList.map(point => point.y);
+                const [xMin, xMax, yMin, yMax] = [Math.min(...xSet), Math.max(...xSet), Math.min(...ySet), Math.max(...ySet)];
+                ctx.save();
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.translate(rx, ry);
+                /* 旋转是顺时针旋转 */
+                const lineW = ctx.lineWidth
+                /* 绘制最小矩形时要考虑到，rect的border是怎么生成的。rect的起点坐标在border中心，然后向两边延伸线宽的一半 */
+                ctx.strokeRect(xMin - lineW / 2, yMin - lineW / 2, xMax - xMin + lineW, yMax - yMin + lineW);
+                ctx.restore()
+            }
+        }
+        ctx.fillStyle = "#95a5a6"
+        currentGraphList.push(new Polygon({ rx: 200, ry: 200, r: 80, sideNum: 8, isFill: true, id: iTotalDraw + 1 }));
+        currentGraphList.push(new Polygon({ rx: 50, ry: 50, r: 40, sideNum: 5, id: iTotalDraw + 1 }));
+
+        canvas.addEventListener("mousedown", e => {
+            if (e.button !== 0) {
+                // 不是点击左键，直接返回
+                return
+            }
+            currentGraph = currentGraphList.find(polygon => {
+                /* 有了选中效果后，每个图形被一个矩形包裹，是否点击在图形内，由是否点击在这个矩形内判断 */
+                // polygon.createPath();
+                // return ctx.isPointInPath(e.layerX, e.layerY)
+
+                return polygon.isPointIn(e.layerX, e.layerY)
+            })
+            if (currentGraph) {
+                var bDelete = false;
+                if (currentGraph.isSelected && currentGraph.isPointInDelete(e.layerX, e.layerY)) {
+                    bDelete = true
+                }
+                // 点击再了某个图形之上
+                currentGraph.isSelected = true
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                currentGraphList.forEach(item => {
+                    if (item.id !== currentGraph.id) {
+                        item.isSelected = false;
+                        item.draw();
+                    }
+                })
+                if (bDelete) {
+                    currentGraphList = currentGraphList.filter(item => item.id !== currentGraph.id)
+                    return
+                }
+                isDraging = true
+                offsetX = e.layerX - currentGraph.rx;
+                offsetY = e.layerY - currentGraph.ry;
+                imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+                currentGraph.rx = e.layerX - offsetX;
+                currentGraph.ry = e.layerY - offsetY;
+                currentGraph.draw()
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                currentGraphList.forEach(item => {
+                    item.isSelected = false;
+                    item.draw();
+                })
+            }
+        })
+        canvas.addEventListener("mousemove", e => {
+            if (!isDraging) {
+                return;
+            }
+            /* putImageData也可传入7个参数，后四个参数则代表图形数据绘制再canvas中的区域 */
+            ctx.putImageData(imageData, 0, 0)
+            currentGraph.rx = e.layerX - offsetX;
+            currentGraph.ry = e.layerY - offsetY;
+            currentGraph.draw()
+        })
+        canvas.addEventListener("mouseup", e => {
+            if (!isDraging) {
+                return;
+            }
+            currentGraph.offsetX = 0
+            currentGraph.offsetY = 0
+            isDraging = false
+        })
+        function addOne() {
+            let x = +document.getElementById("polygonX").value
+            let y = +document.getElementById("polygonY").value
+            let num = +document.getElementById("polygonNum").value
+            let size = +document.getElementById("polygonSize").value
+            currentGraphList.push(new Polygon({ rx: x, ry: y, r: size, sideNum: num, id: iTotalDraw + 1 }));
+        }
+    </script>
+</body>
+
+</html>
