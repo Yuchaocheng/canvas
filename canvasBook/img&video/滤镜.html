@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>滤镜</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            padding: 20px 40px;
+            background: rgba(100, 145, 250, 0.3)
+        }
+
+        #canvas {
+            /* border: 1px solid black; */
+            margin: 10px 0px;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 4px 8px;
+            margin-right: 10px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="btnList">
+        <button onclick="negativeFilter()">负片滤镜</button>
+        <button onclick="blackWhiteFilter()">黑白滤镜</button>
+        <button onclick="sunglassesFilter()">墨镜滤镜</button>
+        <button onclick="rest()">还原</button>
+    </div>
+    <canvas id="canvas" width="800" height="520"></canvas>
+    <script>
+        let canvas = document.getElementById("canvas")
+        let ctx = canvas.getContext("2d");
+        let offsetCanvas = document.createElement("canvas");
+        offsetCanvas.width = canvas.width
+        offsetCanvas.height = canvas.height
+        let offsetCtx = offsetCanvas.getContext("2d");
+        let imageData = null;
+        let img = new Image();
+        let worker = new Worker('./filterWork.js');
+        function loadImg() {
+            img.src = "../image/curved-road.png";
+            img.onload = (() => {
+                ctx.drawImage(img, 0, 0);
+                imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            })
+        }
+        loadImg();
+
+        //负片滤镜实现，对三原色取反
+        function negativeFilter() {
+            let dataArr = imageData.data
+            let length = dataArr.length
+            // 对图像数据进行遍历时，建议用for循环，原始for循环速度最快
+            for (var i = 0; i < length; i += 4) {
+                dataArr[i] = 255 - dataArr[i]; //红
+                dataArr[i + 1] = 255 - dataArr[i + 1];//绿
+                dataArr[i + 2] = 255 - dataArr[i + 2];//蓝
+            };
+            ctx.putImageData(imageData, 0, 0);
+        }
+        // 黑白滤镜，对三原色取平均值，并都赋值该值
+        function blackWhiteFilter() {
+            let dataArr = imageData.data
+            let length = dataArr.length
+            // 对图像数据进行遍历时，建议用for循环，原始for循环速度最快
+            for (var i = 0; i < length; i += 4) {
+                let average = Math.floor((dataArr[i] + dataArr[i + 1] + dataArr[i + 2]) / 3)
+                dataArr[i] = dataArr[i + 1] = dataArr[i + 2] = average;
+            };
+            ctx.putImageData(imageData, 0, 0);
+        }
+        // 墨镜制作
+        function sunglassesFilter() {
+            /* 如果是二进制文件，可传入第二个参数提升性能 */
+            worker.postMessage(imageData);//imageData.data是只读的
+            worker.onmessage = function (event) {
+                imageData = event.data;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(250, 260, 140, 0, Math.PI * 2);
+                ctx.arc(550, 260, 140, 0, Math.PI * 2);
+                ctx.clip();
+
+                // 注意putImageData是不受绘制环境影响的，即clip，globalAlpha等属性无效。
+                // ctx.putImageData(imageData, 0, 0);
+                // 但是可以利用drawImage对绘制属性生效，通过离屏canvas实现
+                offsetCtx.putImageData(imageData, 0, 0);
+                ctx.drawImage(offsetCanvas, 0, 0)
+                ctx.restore();
+                ctx.beginPath();
+                ctx.moveTo(250 + 100, 190);
+                ctx.quadraticCurveTo(400, 100, 450, 190);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(250 + 100, 190, 4, 0, Math.PI * 2)
+                ctx.arc(550 - 100, 190, 4, 0, Math.PI * 2)
+                ctx.fillStyle = "#ecf0f1"
+                ctx.fill();
+            }
+        }
+        // 还原
+        function rest() {
+            ctx.drawImage(img, 0, 0);
+            imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        }
+    </script>
+</body>
+
+</html>
