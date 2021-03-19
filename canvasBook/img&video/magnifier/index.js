@@ -3,6 +3,8 @@ import Circle from "./canvasSet/circle.js";
 import Magnifier from "./canvasSet/magnifier.js";
 const timesMin = 1; //放大镜最小倍数
 const timesMax = 3; //放大镜最大倍数
+const MagnifierCircleMinR = 30; //放大镜最小半径
+const MagnifierCircleMaxR = 200; //放大镜最大半径
 const sizeCircleMinR = 5;
 const sizeCircleMaxR = 20;
 
