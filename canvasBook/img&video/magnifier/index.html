@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>放大镜</title>
+    <link rel="stylesheet/less" href="./style.less" />
+    <script src="http://cdn.bootcss.com/less.js/2.7.0/less.js"></script>
+</head>
+
+<body>
+    <header class="controller">
+        <!-- 放大倍数 -->
+        <div class="times-controller">
+            <label id="times">1.00</label>
+            <div id="timesCanvas"></div>
+        </div>
+        <!-- 放大镜尺寸 -->
+        <div class="sizes-controller">
+            <div id="sizeCircle"></div>
+            <div id="sizesCanvas"></div>
+        </div>
+    </header>
+    <main>
+        <div id="magnifier"></div>
+    </main>
+    <script type="module">
+        import "./index.js"
+    </script>
+</body>
+
+</html>

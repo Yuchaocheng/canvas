@@ -1,0 +1,51 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-image: radial-gradient(circle farthest-side, rgba(205, 205, 0, 0.75), rgba(80, 140, 230, 0.75));
+    /* height: 100%; */
+    padding: 40px;
+}
+
+#timesCanvas,
+#sizesCanvas {
+    width: 200px;
+    height: 40px;
+}
+
+.controller {
+    display: flex;
+
+    .times-controller {
+        display: flex;
+        align-items: center;
+
+        >label {
+            color: rgb(60, 120, 230);
+            font: 18px Helvetica;
+            text-shadow: 1px 1px 1px rgb(0, 0, 158);
+        }
+    }
+
+    .sizes-controller {
+        margin-left: 20px;
+        display: flex;
+        align-items: center;
+    }
+
+    #sizeCircle {
+        width: 40px;
+        height: 40px;
+        margin-right: -10px;
+    }
+}
+
+main {
+    margin-top: 20px;
+    #magnifier {
+        width: 955px;
+        height: 611px;
+    }
+}

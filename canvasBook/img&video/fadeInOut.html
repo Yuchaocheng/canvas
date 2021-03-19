@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>淡入淡出效果</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            padding: 20px 40px;
+            background: rgba(100, 145, 250, 0.3)
+        }
+
+        #canvas {
+            /* border: 1px solid black; */
+            margin: 10px 0px;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 4px 8px;
+            margin-right: 10px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="btnList">
+        <button onclick="fadeInOut2()" id="btn">淡出</button>
+    </div>
+    <canvas id="canvas" width="800" height="520"></canvas>
+    <script>
+        let canvas = document.getElementById("canvas")
+        let ctx = canvas.getContext("2d");
+        let offsetCanvas = document.createElement("canvas");
+        let imageData = null;
+        offsetCanvas.width = canvas.width
+        offsetCanvas.height = canvas.height
+
+        let img = new Image();
+        function loadImg() {
+            img.src = "../image/log-crossing.png";
+            /* 跨域图片可以引用到canvas中，但是引入后无法对canvas进行getImageData或者toDataURL。即跨域图片只能只读，不能修改 */
+            // img.src = "https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/32b84871a28147dda34dabe292cae554~tplv-k3u1fbpfcp-watermark.image";
+            img.onload = (() => {
+                ctx.drawImage(img, 0, 0);
+                imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            })
+        }
+        loadImg();
+
+        // 淡入淡出方法1
+        let globalAlpha = 1;
+        let isInStatus = true
+        function fadeInOut() {
+            ctx.save()
+            if (isInStatus) {
+                globalAlpha -= 0.03
+                if (globalAlpha < 0) {
+                    globalAlpha = 0
+                }
+            } else {
+                globalAlpha += 0.03
+                if (globalAlpha > 1) {
+                    globalAlpha = 1
+                }
+            }
+            /* ctx.globalAlpha的范围为0-1，超过这个范围内的赋值会无效，cnavas不会自动帮你处理 */
+            ctx.globalAlpha = globalAlpha
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            if (globalAlpha > 0 && globalAlpha < 1) {
+                window.requestAnimationFrame(fadeInOut)
+            } else {
+                isInStatus = !isInStatus
+                let text = isInStatus ? "淡出" : "淡入"
+                let btn = document.getElementById("btn");
+                btn.innerHTML = text;
+            }
+            ctx.restore();
+        }
+
+
+        let aUnitArr = []
+        let stepNow = 0
+        let stepTotal = 60
+        function fadeInOut2() {
+            const data = imageData.data;
+            const length = data.length;
+            for (let index = 0; index < length; index += 4) {
+                if (index % 4 === 0) {
+                    let iAlpha = data[index + 3];
+                    if (isInStatus) {
+                        aUnitArr.push(Math.ceil(iAlpha / stepTotal))
+                    } else {
+                        aUnitArr.push(Math.ceil((255) / stepTotal))
+                    }
+                }
+            };
+            window.requestAnimationFrame(fadeMain)
+        }
+        //默认淡出
+        function fadeMain() {
+            let temImgData = stepNow === 0 ? imageData : ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let data = temImgData.data
+            const length = data.length;
+
+            for (let index = 0; index < length; index += 4) {
+                if (index % 4 === 0) {
+                    if (isInStatus) {
+                        data[index + 3] -= aUnitArr[index / 4]
+                    } else {
+                        data[index + 3] += aUnitArr[index / 4]
+                        if (index === 4) {
+                            console.log(data[index + 3]);
+                        }
+                    }
+                }
+            }
+            stepNow++;
+            if (stepNow < stepTotal) {
+                ctx.putImageData(temImgData, 0, 0)
+                window.requestAnimationFrame(fadeMain)
+            } else {
+                stepNow = 0;
+                aUnitArr.length = 0;
+                isInStatus = !isInStatus
+                let text = isInStatus ? "淡出" : "淡入"
+                let btn = document.getElementById("btn");
+                btn.innerHTML = text;
+                if (isInStatus) {
+                    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                } else {
+                    /* 注意，如果rgba中的a已为0，这时候getImageData。rgb三个值也为0。底层无法判断是由哪种颜色全透明了，因为最终表现一致。就默认变为全0 */
+                    alphaImagedata()
+                }
+            }
+        }
+        // 变为全透明
+        function alphaImagedata() {
+            const data = imageData.data;
+            const length = data.length;
+            for (let index = 0; index < length; index += 4) {
+                if (index % 4 === 0) {
+                    data[index + 3] = 0;
+                }
+            };
+        }
+    </script>
+</body>
+
+</html>
