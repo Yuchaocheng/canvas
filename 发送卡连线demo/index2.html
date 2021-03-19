@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="./doc/angular.js"></script>
     <script src="./doc/polyfill2.js"></script>
-    <title>发送卡连线demo</title>
+    <title>发送卡连线demo封装</title>
 </head>
 <style>
     * {
@@ -190,8 +190,7 @@
                         <li ng-repeat="i in aVerticalNum" ng-style="aVerticalStyle" ng-class="{movingCell: i===iMonvingY+1}">{{i}}</li>
                     </div>
                     <canvas id="bg_canvas" width="540" height="320"></canvas>
-                    <canvas id="main_canvas" width="540" height="320" ng-mousemove="handleMouseMove($event)" ng-mouseleave="handleMouseLeave()"
-                        ng-click="clickCell($event)"></canvas>
+                    <canvas id="main_canvas" width="540" height="320" ng-click="clickCell($event)"></canvas>
                 </div>
             </div>
             <div class="btn-list footer">
@@ -201,7 +200,15 @@
         </div>
     </div>
 </body>
-<script>
+<script type="module">
+    import Connect from "./canvasConnect.js"
+    var canvasConnect = new Connect();
+    canvasConnect.init({
+        bgCanvas: "bg_canvas",
+        mainCanvas: "main_canvas",
+        iXNum: 4,
+        iYNum: 3,
+    })
     /* 常量 */
     var BGLINEWIDTH = 1 //背景网格线宽
     var IRADIUS = 24 // 圆半径
@@ -232,31 +239,10 @@
     var aWillDrawCells = []; // 需绘制单元格
     var iWidth = bgCanvas.width / iXNum //单元格宽度
     var iHeight = bgCanvas.height / iYNum //单元格高度
-    var iMovingCell = -1; // 鼠标移动的单元格
     var iClickCell = -1; //  鼠标点击单元格
     var aUndoList = [] //被撤销的单元格数组，记录下来用作恢复
-    var iMouseMovingCell = -1;
     var _Scope = null
 
-    //绘制背景网格，计算线宽，iX:水平方向网格数
-    function grid(iX, iY) {
-        bgCtx.save();
-        var iWidth = (bgCanvas.width - (iX - 1) * BGLINEWIDTH) / iX;
-        var iHeight = (bgCanvas.height - (iY - 1) * BGLINEWIDTH) / iY;
-        for (var i = 1; i < iX; i++) {
-            var drawX = iWidth * i + (i - 1) * BGLINEWIDTH + BGLINEWIDTH / 2;
-            bgCtx.moveTo(drawX, 0)
-            bgCtx.lineTo(drawX, bgCanvas.height)
-        }
-        for (var j = 1; j < iY; j++) {
-            var drawY = iHeight * j + (j - 1) * BGLINEWIDTH + BGLINEWIDTH / 2;
-            bgCtx.moveTo(0, drawY)
-            bgCtx.lineTo(bgCanvas.width, drawY)
-        }
-        bgCtx.lineWidth = BGLINEWIDTH;
-        bgCtx.stroke();
-        bgCtx.restore();
-    };
     // 绘制背景网格，不计算线宽。一般线宽为1、2像素的时候
     function grid2(iX, iY) {
         aCellList = Array.from({ length: iX * iY }, function (item, index) {
@@ -281,7 +267,7 @@
         bgCtx.stroke();
         bgCtx.restore();
     }
-    grid2(iXNum, iYNum);
+    // grid2(iXNum, iYNum);
 
     // 单元格背景填充
     function fillCell(index, iSendPort) {
@@ -543,18 +529,11 @@
         $scope.selectColor = function (color) {
             $scope.activeColor = color
         };
-        // 鼠标移动事件
-        $scope.handleMouseMove = function (e) {
-            iMouseMovingCell = findCurrentIndex(e.offsetX, e.offsetY);
-            $scope.iMonvingX = iMouseMovingCell % iXNum;
-            $scope.iMonvingY = Math.floor(iMouseMovingCell / iXNum);
-        };
-        // 鼠标离开事件
-        $scope.handleMouseLeave = function () {
-            iMouseMovingCell = -1;
-            iClickCell = -1;
-            $scope.iMonvingX = -1;
-            $scope.iMonvingY = -1;
+        canvasConnect.chagneMoveCell = function (iMonvingX, iMonvingY) {
+            console.log(iMonvingX);
+            $scope.iMonvingX = iMonvingX;
+            $scope.iMonvingY = iMonvingY;
+            $scope.$apply()
         }
         // 鼠标点击事件
         $scope.clickCell = function (e) {
