@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrolling Backgrounds</title>
+
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 30px;
+            left: 10px;
+            background: #ffffff;
+            cursor: crosshair;
+            margin-left: 10px;
+            margin-top: 10px;
+            -webkit-box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+            -moz-box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+            box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        input {
+            margin-left: 15px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <canvas id='canvas' width='750' height='500'>
+        Canvas not supported
+    </canvas>
+    <input id='animateButton' type='button' value='Animate' />
+    <script>
+        let animateButton = document.getElementById('animateButton');
+        let canvas = document.getElementById("canvas");
+        let ctx = canvas.getContext("2d");
+        let paused = true;
+        let fps = 60; //帧率
+        let skyOffset = 0;
+        let lastTime = Date.now();
+        /* 这个速度的单位是每秒多少像素 */
+        const SKY_VELOCITY = 30  //pixels/second
+        let sky = new Image();
+
+        function draw() {
+
+            skyOffset = skyOffset < canvas.width ?
+                skyOffset + SKY_VELOCITY / fps : 0;
+
+            ctx.save();
+            ctx.translate(-skyOffset, 0);
+
+            // drawImage两次是为了拼接，当背景图和canvas大小差不多时可以这样处理
+            // 如果背景图足够大，大于canvas.width*2，那么就不用拼接了
+            ctx.drawImage(sky, 0, 0);
+            ctx.drawImage(sky, sky.width - 2, 0);
+
+            ctx.restore();
+        }
+
+
+        animateButton.onclick = function (e) {
+            paused = paused ? false : true;
+            if (paused) {
+                animateButton.value = 'Animate';
+            }
+            else {
+                animateButton.value = 'Pause';
+            }
+        };
+        function calculateFps(now) {
+            var fps = 1000 / (now - lastTime);
+            lastTime = now;
+            return fps;
+        }
+
+        function animate(now) {
+            if (now === undefined) {
+                now = Date.now();
+            }
+
+            fps = calculateFps(now);
+
+            if (!paused) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+        sky.src = '../image/sky.png';
+        sky.onload = function (e) {
+            draw();
+            requestAnimationFrame(animate);
+        };
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>disc</title>
+
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            background: #ffffff;
+            cursor: pointer;
+            margin-left: 10px;
+            margin-top: 10px;
+            -webkit-box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+            -moz-box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+            box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        #controls {
+            margin-top: 10px;
+            margin-left: 15px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id='controls'>
+        <input id='animateButton' type='button' value='Animate' />
+    </div>
+
+    <canvas id='canvas' width='750' height='500'>
+        Canvas not supported
+    </canvas>
+
+    <script>
+        let animateButton = document.getElementById('animateButton');
+        let canvas = document.getElementById("canvas");
+        let ctx = canvas.getContext("2d");
+        let paused = true;
+        let ballList = [];
+        let fillList = ["#6c5ce7", "#e17055", "#00b894"]
+        let lastTime = 0;//上一次动画执行时间，用来计算帧率
+        //上一次计算帧率的时间。动画必须以requestAnimationFrame的时间执行，但是计算帧率这个事情却没必要执行的那么快
+        /* 这个事情再动画中很重要，对于整幅图的绘制需要很频繁，但是另外的一些事情，比如更新游戏分数，显示文字
+        等等这些任务却可以按需要以不同帧率执行 */
+        let lastCalFpsTime = 0;
+        let fps = 0
+        /* 小球类 */
+        class Ball {
+            constructor(optios) {
+                this.x = optios.x || -1;
+                this.y = optios.y || -1;
+                this.speedX = optios.speedX || 2
+                this.speedY = optios.speedY || 2
+                this.strokeStyle = optios.strokeStyle || "#dfe6e9"
+                this.fillStyle = optios.fillStyle || "#2d3436"
+                this.radius = optios.radius || 16
+
+            }
+            draw(canvasCtx) {
+                canvasCtx.save();
+                /* 从0度角开始绘制圆，人为moveTo后就不用每次调用beginPath，提高性能 */
+                /* 写法错误，必须使用beginPath，使用moveTo的话不能清除之前的路径，会被重复绘制 */
+                /* 也就是说如果样式改变了，必须要调用beginPath清除之前的路径的 */
+                // canvasCtx.moveTo(this.x + this.radius, this.y)
+
+                canvasCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                canvasCtx.fillStyle = this.fillStyle
+                canvasCtx.fill()
+                canvasCtx.stroke()
+                canvasCtx.restore();
+            }
+        }
+        /* 初始化小球列表 */
+        ballList = fillList.map((item, index) => {
+            return new Ball({
+                fillStyle: item,
+                x: index * 100,
+                y: index * 20,
+                speedX: index * 2 + 2,
+                speedY: index * 1.5 + 2
+            })
+        })
+        /* 绘制背景 */
+        function drawBackground() {
+            var STEP_Y = 12,
+                i = ctx.canvas.height;
+
+            ctx.strokeStyle = 'lightgray';
+            ctx.lineWidth = 0.5;
+
+            while (i > STEP_Y * 4) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(ctx.canvas.width, i);
+                ctx.stroke();
+                i -= STEP_Y;
+            }
+
+            ctx.save();
+
+            ctx.strokeStyle = 'rgba(100,0,0,0.3)';
+            ctx.lineWidth = 1;
+
+            ctx.beginPath();
+
+            ctx.moveTo(35, 0);
+            ctx.lineTo(35, ctx.canvas.height);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+        /* 更新小球位置 */
+        /* 动画分为两种类型，我们这里实现的是，小球每次运动速度固定，其真实移动速度其实和帧率相关联
+           假设两个人的电脑一个为60帧，一个为120帧。那么再小球运动速度固定的情况下，小球每秒移动的距离就不相同，
+           如果在游戏中，这是不可接收的。所以还有一种动画，就是每秒移动距离相等，而速度根据帧率改变。即：帧率*速度=1秒距离。       
+        */
+        function update() {
+            ballList.forEach(item => {
+                if (item.speedX >= 0) {
+                    if (item.x + item.radius + item.speedX > canvas.width) {
+                        item.speedX = -item.speedX;
+                    }
+                } else {
+                    if (item.x - item.radius + item.speedX < 0) {
+                        item.speedX = -item.speedX;
+                    }
+                }
+                if (item.speedY >= 0) {
+                    if (item.y + item.radius + item.speedY > canvas.height) {
+                        item.speedY = -item.speedY;
+                    }
+                } else {
+                    if (item.y - item.radius + item.speedY < 0) {
+                        item.speedY = -item.speedY;
+                    }
+                }
+                item.x += item.speedX
+                item.y += item.speedY
+                ctx.beginPath();
+                item.draw(ctx);
+            })
+        }
+        ctx.font = '48px Helvetica';
+        /* 动画实现 */
+        function animate() {
+            if (!paused) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBackground();
+                update();
+                /* 1秒钟计算一次，不必要像绘制一样更新那么频繁，更新速度太快反而看不清楚 */
+                let now = Date.now();
+                if (now - lastCalFpsTime > 1000) {
+                    fps = calculateFps();
+                    lastCalFpsTime = Date.now()
+                }
+                ctx.fillStyle = 'cornflowerblue';
+                ctx.fillText(fps.toFixed() + ' fps', 45, 50);
+                lastTime = now;
+                window.requestAnimationFrame(animate);
+            }
+        }
+        /* 计算帧率，所谓帧率就是没秒钟执行动画数 */
+        function calculateFps() {
+            var now = Date.now(),
+                fps = 1000 / (now - lastTime);
+
+            // lastTime = now;
+
+            return fps;
+        }
+        animateButton.onclick = function (e) {
+            paused = !paused;
+            if (paused) {
+                animateButton.value = 'Animate';
+            } else {
+                window.requestAnimationFrame(animate);
+                animateButton.value = 'Pause';
+            }
+        };
+    </script>
+</body>
+
+</html>
