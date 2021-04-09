@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频</title>
+    <style>
+
+    </style>
+</head>
+
+<body>
+    <video id="video" width=800 height=600 autoplay muted loop="false" style="display: none;">
+        <!-- 遇到支持的类型则忽略后面的source元素 -->
+        <source src="../image/Wildlife.wmv" type="audio/mpeg">
+        <source src="../image/mp4short.mp4">
+        <source src="../image/Kalimba.mp3">
+    </video>
+    <canvas id="canvas" width="800" height="520"></canvas>
+    <script>
+        let canvas = document.getElementById("canvas")
+        let ctx = canvas.getContext("2d");
+        let myVideo = document.getElementById('video');
+        myVideo.loop = false
+        function play() {
+            myVideo
+                .play()
+                .then(() => {
+                    console.log('playing');
+                    animate()
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+        }
+        play()
+        function animate(){
+            if (!myVideo.ended) {
+                ctx.drawImage(myVideo,0,0,canvas.width,canvas.height);
+                window.requestAnimationFrame(animate)
+            }
+        }
+    </script>
+</body>
+
+</html>

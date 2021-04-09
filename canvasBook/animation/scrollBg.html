@@ -34,7 +34,7 @@
 
 <body>
 
-    <canvas id='canvas' width='750' height='500'>
+    <canvas id='canvas' width='1000' height='440'>
         Canvas not supported
     </canvas>
     <input id='animateButton' type='button' value='Animate' />
@@ -45,10 +45,17 @@
         let paused = true;
         let fps = 60; //帧率
         let skyOffset = 0;
+        let treeOffset = 0;
+        let nearTreeOffset = 0;
+        let grassOffset = 0;
         let lastTime = Date.now();
         /* 这个速度的单位是每秒多少像素 */
-        const SKY_VELOCITY = 30  //pixels/second
-        let sky = new Image();
+        const SKY_VELOCITY = 10  //pixels/second
+        const TREE_VELOCITY = 30  //pixels/second
+        const NEAR_TREE_VELOCITY = 10  //pixels/second
+        const GRASS_VELOCITY = 48  //pixels/second
+        /* 不能这么写，它是用同一个对象去填充的 */
+        let [sky, tree, nearTree, grass, grass2] = Array.from({ length: 5 }, () => new Image())
 
         function draw() {
 
@@ -63,6 +70,28 @@
             ctx.drawImage(sky, 0, 0);
             ctx.drawImage(sky, sky.width - 2, 0);
 
+            ctx.restore();
+
+            /* 移动一张画布的宽度后循环 */
+            treeOffset = treeOffset < canvas.width ? treeOffset + TREE_VELOCITY / fps : 0
+            ctx.save();
+            ctx.translate(-treeOffset, 0)
+            /* 给个20的偏移量，否则树干长度不够，就像嵌在草里 */
+            /* 绘制两次的目的是，要保证第一颗树移动出画布后，能够循环再画布结尾处接上 */
+            ctx.drawImage(tree, 100, canvas.height - tree.height - 20)
+            ctx.drawImage(tree, canvas.width + tree.width + 100, canvas.height - tree.height - 20)
+            ctx.restore();
+
+
+            grassOffset = grassOffset < canvas.width ? grassOffset + GRASS_VELOCITY / fps : 0
+            // console.log(grassOffset,22);
+            ctx.save();
+            ctx.translate(-grassOffset, 0)
+            ctx.drawImage(grass, 0, canvas.height - grass.height)
+            ctx.drawImage(grass, grass.width - 2, canvas.height - grass.height)
+            /* 这里用2个grass图是为了有层次感，上下营造出一种郁郁葱葱的感觉 */
+            ctx.drawImage(grass2, 0, canvas.height - grass2.height)
+            ctx.drawImage(grass2, grass2.width - 2, canvas.height - grass2.height)
             ctx.restore();
         }
 
@@ -96,6 +125,10 @@
 
             requestAnimationFrame(animate);
         }
+        tree.src = '../image/smalltree.png';
+        nearTree.src = '../image/tree-twotrunks.png';
+        grass.src = '../image/grass.png';
+        grass2.src = '../image/grass2.png';
         sky.src = '../image/sky.png';
         sky.onload = function (e) {
             draw();
