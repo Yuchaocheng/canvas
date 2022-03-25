@@ -31,8 +31,8 @@ export default class ToolCanvas {
         /* 鼠标当前移动到的icon图标及位置 */
         this.curIcon = null;
         this.selectedIcon = "";
-        this.curLayerX = -1;
-        this.curLayerY = -1;
+        this.curOffsetX = -1;
+        this.curOffsetY = -1;
         //记录每个icon的位置，否则没法制作点击事件
         this.aIconList = [
             // {type:"line",x:0,y:0,w:0,h:0}
@@ -56,6 +56,7 @@ export default class ToolCanvas {
         this.curIcon = this.aIconList[0];
         this.dealMouseDown();
         this.curIcon = null;
+        console.log(this.aIconList, 222);
     }
     // 实例销毁，主要清除监听事件
     destroy() {
@@ -265,13 +266,15 @@ export default class ToolCanvas {
     }
     // 处理鼠标移动事件
     dealMouseMove(e) {
-        this.curLayerX = e.layerX;
-        this.curLayerY = e.layerY;
+        this.curOffsetX = e.offsetX;
+        this.curOffsetY = e.offsetY;
         let inIcon = this.aIconList.find((item) => {
-            let xIn = e.layerX >= item.x && e.layerX <= item.x + item.w;
-            let yIn = e.layerY >= item.y && e.layerY <= item.y + item.h;
+            // debugger;
+            let xIn = e.offsetX >= item.x && e.offsetX <= item.x + item.w;
+            let yIn = e.offsetY >= item.y && e.offsetY <= item.y + item.h;
             return xIn && yIn;
         });
+        console.log(this.curIcon, "curIcon");
         if (typeof inIcon !== "undefined") {
             this.curIcon = inIcon;
             this.canvas.style.cursor = "pointer";
@@ -282,11 +285,11 @@ export default class ToolCanvas {
     }
     // 处理鼠标移出事件
     dealMouseOut() {
-        this.curLayerX = -1;
-        this.curLayerY = -1;
+        this.curOffsetX = -1;
+        this.curOffsetY = -1;
     }
     // 处理点击事件
-    dealMouseDown() {
+    dealMouseDown(e) {
         let { curIcon, aIconList, context } = this;
         if (!curIcon) {
             // 点击到空白区域

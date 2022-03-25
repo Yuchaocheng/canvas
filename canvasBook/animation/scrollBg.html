@@ -50,10 +50,11 @@
         let grassOffset = 0;
         let lastTime = Date.now();
         /* 这个速度的单位是每秒多少像素 */
+        /* 这里最关键的就是速度的不同，模拟人眼三维视角差。近的物体运动速度快，远处的物体运动速度慢 */
         const SKY_VELOCITY = 10  //pixels/second
-        const TREE_VELOCITY = 30  //pixels/second
-        const NEAR_TREE_VELOCITY = 10  //pixels/second
-        const GRASS_VELOCITY = 48  //pixels/second
+        const TREE_VELOCITY = 20  //pixels/second
+        const NEAR_TREE_VELOCITY = 40  //pixels/second
+        const GRASS_VELOCITY = 66  //pixels/second
         /* 不能这么写，它是用同一个对象去填充的 */
         let [sky, tree, nearTree, grass, grass2] = Array.from({ length: 5 }, () => new Image())
 
@@ -76,10 +77,28 @@
             treeOffset = treeOffset < canvas.width ? treeOffset + TREE_VELOCITY / fps : 0
             ctx.save();
             ctx.translate(-treeOffset, 0)
-            /* 给个20的偏移量，否则树干长度不够，就像嵌在草里 */
-            /* 绘制两次的目的是，要保证第一颗树移动出画布后，能够循环再画布结尾处接上 */
-            ctx.drawImage(tree, 100, canvas.height - tree.height - 20)
-            ctx.drawImage(tree, canvas.width + tree.width + 100, canvas.height - tree.height - 20)
+            /* 绘制多棵树，封装一个函数减少重复代码 */
+            function drawTree(initX){
+                /* 给个20的偏移量，否则树干长度不够，就像嵌在草里 */
+                /* 绘制两次的目的是，要保证第一颗树移动出画布后，能够循环再画布结尾处接上 */
+                ctx.drawImage(tree, initX, canvas.height - tree.height - 20)
+                ctx.drawImage(tree, canvas.width + tree.width + initX, canvas.height - tree.height - 20)
+            }
+            drawTree(100);
+            drawTree(400)
+            drawTree(700)
+            ctx.restore();
+
+
+            nearTreeOffset = nearTreeOffset < canvas.width ? nearTreeOffset + NEAR_TREE_VELOCITY / fps : 0
+            ctx.save();
+            ctx.translate(-nearTreeOffset, 0)
+            function drawNearTree(initX){
+                ctx.drawImage(nearTree, initX, canvas.height - nearTree.height - 10)
+                ctx.drawImage(nearTree, canvas.width + nearTree.width + initX, canvas.height - nearTree.height - 10)
+            }
+            drawNearTree(240)
+            drawNearTree(790)
             ctx.restore();
 
 

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>timer</title>
+    <style>
+        body {
+            background: #eeeeee;
+        }
+
+        #controls {
+            position: absolute;
+            top: 30px;
+            left: 40px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.1);
+            border: thin solid rgba(0, 0, 0, 0.25);
+            -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5);
+            -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5);
+            box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        #canvas {
+            background: #ffffff;
+            cursor: crosshair;
+            margin-left: 10px;
+            margin-top: 10px;
+            -webkit-box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+            -moz-box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+            box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+        }
+
+    </style>
+</head>
+
+<body>
+    <canvas id='canvas' width='750' height='600'>
+        Canvas not supported
+    </canvas>
+
+    <div id='controls'>
+        Seconds (0-60): <input id='seconds' type='text' value='10' size='4' />
+        <input id='startStopButton' type='button' value='Start' />
+    </div>
+    <script>
+        let canvas = document.getElementById("canvas"),
+            ctx = canvas.getContext("2d"),
+            startStopButton = document.getElementById('startStopButton'),
+            secondsInput = document.getElementById('seconds'),
+            offsetCanvas = document.createElement("canvas"),
+            offsetCtx = offsetCanvas.getContext("2d")
+        /* 离屏canvas保存静态内容 */
+        offsetCanvas.width = canvas.width;
+        offsetCanvas.height = canvas.height;
+
+        /* 常量 */
+        const CENTROID_RADIUS = 10,  //时钟中心圆球参数
+            CENTROID_STROKE_STYLE = 'rgba(0, 0, 0, 0.5)',
+            CENTROID_FILL_STYLE = 'rgba(80, 190, 240, 0.6)';
+
+        const TRACKING_DIAL_MARGIN = 80,//指针参数
+            GUIDEWIRE_STROKE_STYLE = 'goldenrod',
+            GUIDEWIRE_FILL_STYLE = 'rgba(0, 0, 230, 0.9)';
+
+        const DEGREE_DIAL_MARGIN = 55;
+        const DEGREE_OUTER_DIAL_MARGIN = DEGREE_DIAL_MARGIN;
+
+        const DEGREE_ANNOTATIONS_FILL_STYLE = 'rgba(0, 0, 230, 0.9)';
+        const DEGREE_ANNOTATIONS_TEXT_SIZE = 18;
+
+        const TICK_WIDTH = 15, TEXT_MARGIN = 135,
+            TICK_LONG_STROKE_STYLE = 'rgba(100, 140, 230, 0.9)',
+            TICK_SHORT_STROKE_STYLE = 'rgba(100, 140, 230, 0.7)';
+        let circle = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 150
+        },
+            timerSetting = 10;
+
+        /* *********      绘制静态图形         ************* */
+        /* 绘制背景 */
+        function drawGrid(color, stepx, stepy) {
+            ctx.save()
+
+
+            ctx.strokeStyle = color;
+            ctx.fillStyle = '#ffffff';
+            /* 0.5会造成颜色变淡 */
+            ctx.lineWidth = 0.5;
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+            for (var i = stepx + 0.5; i < ctx.canvas.width; i += stepx) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, ctx.canvas.height);
+                ctx.stroke();
+            }
+
+            for (var i = stepy + 0.5; i < ctx.canvas.height; i += stepy) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(ctx.canvas.width, i);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+        /* 绘制时钟中心圆球 */
+        function drawCentroid() {
+            ctx.beginPath();
+            ctx.save();
+            ctx.strokeStyle = CENTROID_STROKE_STYLE;
+            ctx.fillStyle = CENTROID_FILL_STYLE;
+            ctx.arc(circle.x, circle.y, CENTROID_RADIUS, 0, Math.PI * 2, false);
+            ctx.stroke();
+            ctx.fill();
+            ctx.restore();
+        }
+        /* 绘制秒针指针 */
+        function drawHand(loc, stopwatchElapsed) {
+            let initialAngle = -Math.PI / 2 - (Math.PI / 180) * (timerSetting / 60 * 360),
+                angle = initialAngle,
+                // stopwatchElapsed = stopwatch.getElapsedTime(),
+                // stopwatchElapsed = 13000,
+                seconds,
+                radius,
+                endpt;
+
+            if (stopwatchElapsed) {
+                angle = -Math.PI / 2 - (Math.PI / 180) * ((timerSetting - stopwatchElapsed / 1000) / 60 * 360),
+                    seconds = parseFloat(timerSetting - stopwatchElapsed / 1000).toFixed(2);
+                if (seconds > 0) {
+                    secondsInput.value = seconds;
+                }
+            }
+
+            radius = circle.radius + TRACKING_DIAL_MARGIN;
+
+            if (loc.x >= circle.x) {
+                endpt = {
+                    x: circle.x + radius * Math.cos(angle),
+                    y: circle.y + radius * Math.sin(angle)
+                };
+            }
+            else {
+                endpt = {
+                    x: circle.x - radius * Math.cos(angle),
+                    y: circle.y - radius * Math.sin(angle)
+                };
+            }
+
+            ctx.save();
+
+            ctx.strokeStyle = GUIDEWIRE_STROKE_STYLE;
+            ctx.fillStyle = GUIDEWIRE_FILL_STYLE;
+            ctx.lineWidth = 1.5;
+
+            ctx.beginPath();
+            ctx.moveTo(circle.x, circle.y);
+            ctx.lineTo(endpt.x, endpt.y);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.fillStyle = 'yellow';
+            ctx.arc(endpt.x, endpt.y, 7, 0, Math.PI * 2, false);
+            ctx.stroke();
+            ctx.fill();
+
+            ctx.restore();
+        }
+        // 绘制外侧背景
+        function drawDegreeOuterDial() {
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.arc(circle.x, circle.y,
+                circle.radius + DEGREE_OUTER_DIAL_MARGIN,
+                0, Math.PI * 2, false);
+        };
+        /* 绘制内圆半径 */
+        function drawDegreeTickDial() {
+            ctx.beginPath();
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.arc(circle.x, circle.y,
+                circle.radius + DEGREE_DIAL_MARGIN - TICK_WIDTH, 0, Math.PI * 2, false);
+            ctx.stroke();
+            ctx.restore();
+        };
+        /* 绘制刻度线 */
+        function drawDegreeDialTicks() {
+            let radius = circle.radius + DEGREE_DIAL_MARGIN,
+                ANGLE_MAX = 2 * Math.PI,
+                ANGLE_DELTA = Math.PI / 64;
+
+            ctx.save();
+
+            for (var angle = 0, cnt = 0; angle < ANGLE_MAX; angle += ANGLE_DELTA, ++cnt) {
+                ctx.beginPath();
+
+                if (cnt % 4 === 0) {
+                    ctx.moveTo(circle.x + Math.cos(angle) * (radius - TICK_WIDTH),
+                        circle.y + Math.sin(angle) * (radius - TICK_WIDTH));
+                    ctx.lineTo(circle.x + Math.cos(angle) * (radius),
+                        circle.y + Math.sin(angle) * (radius));
+                    ctx.strokeStyle = TICK_LONG_STROKE_STYLE;
+                    ctx.stroke();
+                }
+                else {
+                    ctx.moveTo(circle.x + Math.cos(angle) * (radius - TICK_WIDTH / 2),
+                        circle.y + Math.sin(angle) * (radius - TICK_WIDTH / 2));
+                    ctx.lineTo(circle.x + Math.cos(angle) * (radius),
+                        circle.y + Math.sin(angle) * (radius));
+                    ctx.strokeStyle = TICK_SHORT_STROKE_STYLE;
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+        }
+        function drawDegreeAnnotations() {
+            var radius = circle.radius + TEXT_MARGIN;
+
+            ctx.save();
+            ctx.fillStyle = DEGREE_ANNOTATIONS_FILL_STYLE;
+            ctx.font = DEGREE_ANNOTATIONS_TEXT_SIZE + 'px Arial';
+
+            for (var angle = Math.PI / 2, i = 0; i < 60; angle += Math.PI / 6, i += 5) {
+                ctx.beginPath();
+                ctx.fillText(i,
+                    circle.x + Math.cos(angle) * (radius - TICK_WIDTH * 2),
+                    circle.y - Math.sin(angle) * (radius - TICK_WIDTH * 2));
+            }
+            ctx.restore();
+        }
+
+        /* 绘制最外侧圆弧 */
+        function drawTrackingDial() {
+            const TRACKING_DIAL_STROKING_STYLE = 'rgba(100, 140, 230, 0.5)';
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+            ctx.shadowOffsetX = 3,
+                ctx.shadowOffsetY = 3,
+                ctx.shadowBlur = 6,
+                ctx.strokeStyle = TRACKING_DIAL_STROKING_STYLE;
+            ctx.beginPath();
+            ctx.arc(circle.x, circle.y, circle.radius +
+                TRACKING_DIAL_MARGIN, 0, Math.PI * 2, true);
+            ctx.stroke();
+            ctx.restore();
+        }
+        // 静态内容绘制
+        function drawStatic() {
+            var loc = { x: circle.x, y: circle.y };
+            drawGrid('lightgray', 10, 10);
+            // drawHand(loc);
+            drawTrackingDial()
+            drawDegreeOuterDial();
+            ctx.fillStyle = 'rgba(218, 165, 35, 0.2)';
+            ctx.fill();
+
+            drawDegreeDialTicks();
+            drawDegreeAnnotations();
+            offsetCtx.drawImage(canvas, 0, 0);
+        }
+        drawStatic()
+
+
+        /* 绘制动画，核心，这部分自己实现 */
+        let x = 1000
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(offsetCanvas, 0, 0)
+            var loc = { x: circle.x, y: circle.y };
+            drawHand(loc, x);
+            x += 20;
+            requestAnimationFrame(animate);
+        }
+
+        /*  监听 */
+        startStopButton.onclick = function (e) {
+            var value = startStopButton.value;
+            if (value === 'Start') {
+                // stopwatch.start();
+                startStopButton.value = 'Stop';
+                requestAnimationFrame(animate);
+                secondsInput.disabled = true;
+            }
+            else {
+                // stopwatch.stop();
+                timerSetting = parseFloat(secondsInput.value);
+                startStopButton.value = 'Start';
+                secondsInput.disabled = false;
+            }
+            // stopwatch.reset();
+        };
+
+        secondsInput.onchange = function (e) {
+            timerSetting = parseFloat(secondsInput.value);
+            draw();
+        };
+    </script>
+</body>
+
+</html>

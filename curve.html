@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>曲线</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas {
+            border: 1px solid black;
+            margin: 200px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas" width="1000" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        var aPoints = [{ x: 20, y: 380 }, { x: 100, y: 430 }, { x: 200, y: 280 }, { x: 300, y: 160 },
+        { x: 400, y: 340 }, { x: 500, y: 100 }, { x: 600, y: 300 }, { x: 700, y: 240 }]
+        const drawPoints = (() => {
+            ctx.beginPath();
+            aPoints.forEach(item => {
+                ctx.beginPath();
+                ctx.arc(item.x, item.y, 5, 0, Math.PI * 2)
+                ctx.stroke()
+            })
+        })
+        const drawCurve = (() => {
+            for (var i = 0; i < aPoints.length - 1; i ++) {
+                drawCurvePath(ctx,aPoints[i], aPoints[i + 1],0.4)
+            }
+            ctx.stroke()
+        })
+        drawCurve()
+        /**
+            * 绘制二次贝赛尔曲线路径
+            * @param  {Object} ctx
+            * @param  {Array<number>} p0
+            * @param  {Array<number>} p1
+            * @param  {Array<number>} p2
+            */
+        function drawCurvePath(ctx, start, end, curveness=0.25) {
+            // 计算中间控制点
+            var cp = {
+                x: (start.x + end.x) / 2 - (start.y - end.y) * curveness,
+                y:(start.y + end.y) / 2 - (end.x - start.x) * curveness
+            }
+            ctx.moveTo(start.x, start.y);
+            ctx.quadraticCurveTo(
+                cp.x, cp.y,
+                end.x, end.y
+            );
+        }
+    </script>
+</body>
+
+</html>
